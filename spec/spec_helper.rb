@@ -1,5 +1,6 @@
 require "bundler/setup"
 require "fibered_mysql2"
+require 'rails'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
