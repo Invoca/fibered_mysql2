@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require 'em-synchrony'
-# require 'pry'; binding.pry
-# require 'active_record/errors'
+require 'active_model'
+require 'active_record/errors'
 require 'active_record/connection_adapters/em_mysql2_adapter'
 
 module FiberedMysql2
