@@ -1,8 +1,6 @@
 # FiberedMysql2
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/fibered_mysql2`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+FiberedMysql2 adds Fiber support to `ActiveRecord::ConnectionAdapters::EMMysql2Adapter`
 
 ## Installation
 
@@ -20,9 +18,17 @@ Or install it yourself as:
 
     $ gem install fibered_mysql2
 
+## Support
+Tested with Rails versions 4.2, 5.2, and 6.0.
+
 ## Usage
 
-TODO: Write usage instructions here
+Behaves the same as `ActiveRecord::ConnectionAdapters::EMMysql2Adapter` but with added Fiber safety while leasing/expiring connections.
+```ruby
+connection = FiberedMysql2::FiberedMysql2Adapter.new(client, logger, options, config)
+connection.lease
+connection.expire // Rails 5+ only
+```
 
 ## Development
 
@@ -32,4 +38,4 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/fibered_mysql2.
+Bug reports and pull requests are welcome on GitHub at https://github.com/invoca/fibered_mysql2.
