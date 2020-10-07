@@ -7,6 +7,7 @@ gemspec
 
 gem 'appraisal'
 gem 'bundler',    '~> 1.8'
+gem 'coveralls', require: false
 gem 'mysql2',     '0.4.5'
 gem 'pry',        '~> 0.13'
 gem 'pry-byebug', '~> 3.9'
