@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/Invoca/fibered_mysql2/badge.svg?branch=master)](https://coveralls.io/github/Invoca/fibered_mysql2?branch=master)
+
 # FiberedMysql2
 
 FiberedMysql2 adds Fiber support to `ActiveRecord::ConnectionAdapters::EMMysql2Adapter`
