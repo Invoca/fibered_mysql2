@@ -3,7 +3,7 @@
 require_relative '../../lib/active_record/connection_adapters/fibered_mysql2_adapter'
 
 RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
-  let(:client) { Mysql2::EM::Client.new }
+  let(:client) { double(Mysql2::EM::Client) }
   let(:logger) { Logger.new(STDOUT) }
   let(:options) { [] }
   let(:config) { {} }
@@ -11,10 +11,15 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
   subject { FiberedMysql2::FiberedMysql2Adapter.new(client, logger, options, config) }
 
   before do
-    connection_stub = Object.new
-    allow(connection_stub).to receive(:server_info).and_return({ version: "5.7.27" })
-
-    expect(Mysql2::EM::Client).to receive(:new) { |config| connection_stub }
+    allow(client).to receive(:query_options) { {} }
+    allow(client).to receive(:escape) { |query| query }
+    query_args = []
+    stub_mysql_client_result = Struct.new(:fields, :to_a).new([], [])
+    expect(client).to receive(:query) do |*args|
+      query_args << args
+      stub_mysql_client_result
+    end.at_least(1).times
+    allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
   end
 
   it 'returns a FiberedMysql2Adapter' do
