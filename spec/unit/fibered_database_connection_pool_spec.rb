@@ -309,6 +309,24 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
   context ActiveRecord::ConnectionAdapters::ConnectionPool::Queue do
     let(:timer_helper) { TimerHelper.new }
 
+    let(:name) { 'primary' }
+    let(:config) {{ database: 'rr_prod', host: 'master.ringrevenue.net' }}
+    let(:adapter_method) { :em_mysql2 }
+    let(:spec) do
+      case Rails::VERSION::MAJOR
+      when 4
+        ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(config, adapter_method)
+      else
+        ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(name, config, adapter_method)
+      end
+    end
+
+    let(:cp) { ActiveRecord::ConnectionAdapters::ConnectionPool.new(spec) }
+    let(:queue) { cp.instance_variable_get(:@available) }
+
+    let(:connection) { double(Object, lease: true) }
+    let(:polled) { [] }
+
     before do
       allow(EM).to receive(:add_timer) { |&block| timer_helper.queue_timer(&block); block }
       allow(EM).to receive(:cancel_timer) { |block| timer_helper.cancel_timer(block) }
@@ -316,48 +334,13 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
 
     context "poll" do
       it "should return added entries immediately" do
-        spec = case Rails::VERSION::MAJOR
-               when 4
-                 ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(
-                     { database: 'rr_prod', host: 'master.ringrevenue.net' },
-                     :em_mysql2
-                 )
-               else
-                 ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(
-                     'primary',
-                     { database: 'rr_prod', host: 'master.ringrevenue.net' },
-                     :em_mysql2
-                 )
-               end
-
-        cp = ActiveRecord::ConnectionAdapters::ConnectionPool.new(spec)
-        connection = double(Object, lease: true)
-        queue = cp.instance_variable_get(:@available)
         queue.add(connection)
-        polled = []
         fiber = Fiber.new { polled << queue.poll(connection) }
         fiber.resume
         expect(polled).to eq([connection])
       end
 
       it "should block when queue is empty" do
-        spec = case Rails::VERSION::MAJOR
-               when 4
-                 ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(
-                     { database: 'rr_prod', host: 'master.ringrevenue.net' },
-                     :em_mysql2
-                 )
-               else
-                 ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(
-                     'primary',
-                     { database: 'rr_prod', host: 'master.ringrevenue.net' },
-                     :em_mysql2
-                 )
-               end
-        cp = ActiveRecord::ConnectionAdapters::ConnectionPool.new(spec)
-        queue = cp.instance_variable_get(:@available)
-        connection = double(Object, lease: true)
-        polled = []
         fiber = Fiber.new { polled << queue.poll(10) }
         fiber.resume
         queue.add(connection)
