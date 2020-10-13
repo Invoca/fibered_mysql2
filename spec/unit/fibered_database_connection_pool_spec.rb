@@ -14,36 +14,84 @@ class TestMonitor
   end
 end
 
-describe FiberedMysql2::FiberedDatabaseConnectionPool do
-  before do
+class EmHelper
+  attr_accessor :fibers
+  attr_reader :trace
+
+  def initialize
     @next_ticks = []
-    @trace      = []
-    allow(EM).to receive(:next_tick) { |&block| queue_next_tick(&block) }
+    @trace = []
+    @fibers = []
+  end
+
+  def add_trace(message)
+    @trace << message
+  end
+
+  def queue_next_tick(&block)
+    block or raise "Nil block passed!"
+    add_trace "next_tick queued"
+    @next_ticks << block
+  end
+
+  def run_next_ticks
+    while (next_tick_block = @next_ticks.shift)
+      add_trace "next_tick.call"
+      next_tick_block.call
+    end
+  end
+
+  def resume(fiber, *args)
+    add_trace "fiber #{fiber} RESUME"
+    @fibers[fiber].resume(fiber, *args)
+    run_next_ticks
+  end
+end
+
+class TimerHelper
+  def initialize
+    @timers = []
+  end
+
+  def queue_timer(&block)
+    @timers << block
+  end
+
+  def cancel_timer(timer_block)
+    @timers.delete_if { |block| block == timer_block }
+  end
+end
+
+describe FiberedMysql2::FiberedDatabaseConnectionPool do
+  let(:em_helper) { EmHelper.new }
+  
+  before do
+    allow(EM).to receive(:next_tick) { |&block| em_helper.queue_next_tick(&block) }
   end
 
   context FiberedMysql2::FiberedMonitorMixin do
     let(:monitor) { TestMonitor.new }
 
     it "should implement mutual exclusion" do
-      @fibers = (0...2).map do
+      em_helper.fibers = (0...2).map do
         Fiber.new do |i|
-          trace "fiber #{i} begin"
+          em_helper.add_trace "fiber #{i} begin"
           monitor.synchronize do
-            trace "fiber #{i} LOCK"
-            trace "fiber #{i} yield"
+            em_helper.add_trace "fiber #{i} LOCK"
+            em_helper.add_trace "fiber #{i} yield"
             Fiber.yield
-            trace "fiber #{i} UNLOCK"
+            em_helper.add_trace "fiber #{i} UNLOCK"
           end
-          trace "fiber #{i} end"
+          em_helper.add_trace "fiber #{i} end"
         end
       end
 
-      resume 0
-      resume 1
-      resume 0
-      resume 1
+      em_helper.resume 0
+      em_helper.resume 1
+      em_helper.resume 0
+      em_helper.resume 1
 
-      expect(@trace).to eq([
+      expect(em_helper.trace).to eq([
                                "fiber 0 RESUME",
                                "fiber 0 begin",
                                "fiber 0 LOCK",
@@ -65,33 +113,33 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
     end
 
     it "should keep a ref count on the mutex (yield after 1st lock)" do
-      @fibers = (0...2).map do
+      em_helper.fibers = (0...2).map do
         Fiber.new do |i|
-          trace "fiber #{i} begin"
+          em_helper.add_trace "fiber #{i} begin"
           monitor.synchronize do
-            trace "fiber #{i} LOCK #{monitor.mon_count}"
-            trace "fiber #{i} yield A"
+            em_helper.add_trace "fiber #{i} LOCK #{monitor.mon_count}"
+            em_helper.add_trace "fiber #{i} yield A"
             Fiber.yield
             monitor.synchronize do
-              trace "fiber #{i} LOCK #{monitor.mon_count}"
-              trace "fiber #{i} yield B"
+              em_helper.add_trace "fiber #{i} LOCK #{monitor.mon_count}"
+              em_helper.add_trace "fiber #{i} yield B"
               Fiber.yield
-              trace "fiber #{i} UNLOCK #{monitor.mon_count}"
+              em_helper.add_trace "fiber #{i} UNLOCK #{monitor.mon_count}"
             end
-            trace "fiber #{i} UNLOCK #{monitor.mon_count}"
+            em_helper.add_trace "fiber #{i} UNLOCK #{monitor.mon_count}"
           end
-          trace "fiber #{i} end"
+          em_helper.add_trace "fiber #{i} end"
         end
       end
 
-      resume 0
-      resume 1
-      resume 0
-      resume 0
-      resume 1
-      resume 1
+      em_helper.resume 0
+      em_helper.resume 1
+      em_helper.resume 0
+      em_helper.resume 0
+      em_helper.resume 1
+      em_helper.resume 1
 
-      expect(@trace).to eq([
+      expect(em_helper.trace).to eq([
                                "fiber 0 RESUME",
                                "fiber 0 begin",
                                "fiber 0 LOCK 1",
@@ -121,33 +169,33 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
     end
 
     it "should keep a ref count on the mutex (yield after 2nd lock)" do
-      @fibers = (0...2).map do
+      em_helper.fibers = (0...2).map do
         Fiber.new do |i|
-          trace "fiber #{i} begin"
+          em_helper.add_trace "fiber #{i} begin"
           monitor.synchronize do
-            trace "fiber #{i} LOCK #{monitor.mon_count}"
-            trace "fiber #{i} yield A"
+            em_helper.add_trace "fiber #{i} LOCK #{monitor.mon_count}"
+            em_helper.add_trace "fiber #{i} yield A"
             Fiber.yield
             monitor.synchronize do
-              trace "fiber #{i} LOCK #{monitor.mon_count}"
-              trace "fiber #{i} yield B"
+              em_helper.add_trace "fiber #{i} LOCK #{monitor.mon_count}"
+              em_helper.add_trace "fiber #{i} yield B"
               Fiber.yield
-              trace "fiber #{i} UNLOCK #{monitor.mon_count}"
+              em_helper.add_trace "fiber #{i} UNLOCK #{monitor.mon_count}"
             end
-            trace "fiber #{i} UNLOCK #{monitor.mon_count}"
+            em_helper.add_trace "fiber #{i} UNLOCK #{monitor.mon_count}"
           end
-          trace "fiber #{i} end"
+          em_helper.add_trace "fiber #{i} end"
         end
       end
 
-      resume 0
-      resume 0
-      resume 1
-      resume 0
-      resume 1
-      resume 1
+      em_helper.resume 0
+      em_helper.resume 0
+      em_helper.resume 1
+      em_helper.resume 0
+      em_helper.resume 1
+      em_helper.resume 1
 
-      expect(@trace).to eq([
+      expect(em_helper.trace).to eq([
                                "fiber 0 RESUME",
                                "fiber 0 begin",
                                "fiber 0 LOCK 1",
@@ -177,41 +225,41 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
     end
 
     it "should implement wait/signal on the condition with priority over other mutex waiters" do
-      @fibers = (0...3).map do
+      em_helper.fibers = (0...3).map do
         Fiber.new do |i, condition_handling|
-          trace "fiber #{i} begin"
+          em_helper.add_trace "fiber #{i} begin"
           monitor.synchronize do
-            trace "fiber #{i} LOCK #{monitor.mon_count}"
+            em_helper.add_trace "fiber #{i} LOCK #{monitor.mon_count}"
             monitor.synchronize do
-              trace "fiber #{i} LOCK #{monitor.mon_count}"
-              trace "fiber #{i} yield"
+              em_helper.add_trace "fiber #{i} LOCK #{monitor.mon_count}"
+              em_helper.add_trace "fiber #{i} yield"
               Fiber.yield
               case condition_handling
               when :wait
-                trace "fiber #{i} WAIT"
+                em_helper.add_trace "fiber #{i} WAIT"
                 monitor.condition.wait
-                trace "fiber #{i} UNWAIT"
+                em_helper.add_trace "fiber #{i} UNWAIT"
               when :signal
-                trace "fiber #{i} SIGNAL"
+                em_helper.add_trace "fiber #{i} SIGNAL"
                 monitor.condition.signal
-                trace "fiber #{i} UNSIGNAL"
+                em_helper.add_trace "fiber #{i} UNSIGNAL"
               end
-              trace "fiber #{i} UNLOCK #{monitor.mon_count}"
+              em_helper.add_trace "fiber #{i} UNLOCK #{monitor.mon_count}"
             end
-            trace "fiber #{i} UNLOCK #{monitor.mon_count}"
+            em_helper.add_trace "fiber #{i} UNLOCK #{monitor.mon_count}"
           end
-          trace "fiber #{i} end"
+          em_helper.add_trace "fiber #{i} end"
         end
       end
 
-      resume 0, :wait
-      resume 1, :signal
-      resume 2, nil
-      resume 0
-      resume 1
-      resume 2
+      em_helper.resume 0, :wait
+      em_helper.resume 1, :signal
+      em_helper.resume 2, nil
+      em_helper.resume 0
+      em_helper.resume 1
+      em_helper.resume 2
 
-      expect(@trace).to eq([
+      expect(em_helper.trace).to eq([
                                "fiber 0 RESUME",
                                "fiber 0 begin",
                                "fiber 0 LOCK 1",
@@ -259,10 +307,11 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
   end
 
   context ActiveRecord::ConnectionAdapters::ConnectionPool::Queue do
+    let(:timer_helper) { TimerHelper.new }
+
     before do
-      @timers     = []
-      allow(EM).to receive(:add_timer) { |&block| queue_timer(&block); block }
-      allow(EM).to receive(:cancel_timer) { |block| cancel_timer(block) }
+      allow(EM).to receive(:add_timer) { |&block| timer_helper.queue_timer(&block); block }
+      allow(EM).to receive(:cancel_timer) { |block| timer_helper.cancel_timer(block) }
     end
 
     context "poll" do
@@ -312,7 +361,7 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
         fiber = Fiber.new { polled << queue.poll(10) }
         fiber.resume
         queue.add(connection)
-        run_next_ticks
+        em_helper.run_next_ticks
         expect(polled).to eq([connection])
       end
     end
@@ -431,15 +480,15 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
           c1 = nil
 
           fiber1 = Fiber.new do
-            run_next_ticks
-            c1 = ActiveRecord::Base.connection.tap { run_next_ticks }
+            em_helper.run_next_ticks
+            c1 = ActiveRecord::Base.connection.tap { em_helper.run_next_ticks }
           end
           fiber1.resume
 
           expect(c1).to eq(nil) # should block because there is only one connection
 
           connection_pool.checkin(c0)
-          run_next_ticks
+          em_helper.run_next_ticks
 
           expect(c1).to eq(c0)
 
@@ -447,38 +496,5 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
         end
       end
     end
-  end
-
-  private
-
-  def trace(message)
-    @trace << message
-  end
-
-  def queue_next_tick(&block)
-    block or raise "Nil block passed!"
-    trace "next_tick queued"
-    @next_ticks << block
-  end
-
-  def run_next_ticks
-    while (next_tick_block = @next_ticks.shift)
-      @trace << "next_tick.call"
-      next_tick_block.call
-    end
-  end
-
-  def resume(fiber, *args)
-    trace "fiber #{fiber} RESUME"
-    @fibers[fiber].resume(fiber, *args)
-    run_next_ticks
-  end
-
-  def queue_timer(&block)
-    @timers << block
-  end
-
-  def cancel_timer(timer_block)
-    @timers.delete_if { |block| block == timer_block }
   end
 end
