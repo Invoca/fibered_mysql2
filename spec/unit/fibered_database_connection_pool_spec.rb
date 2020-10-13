@@ -16,26 +16,19 @@ end
 
 describe FiberedMysql2::FiberedDatabaseConnectionPool do
   before do
-    @exceptions = []
     @next_ticks = []
     @trace      = []
     allow(EM).to receive(:next_tick) { |&block| queue_next_tick(&block) }
   end
 
-  after do
-    expect(@exceptions).to eq([])
-  end
-
   context FiberedMysql2::FiberedMonitorMixin do
-    before do
-      @monitor    = TestMonitor.new
-    end
+    let(:monitor) { TestMonitor.new }
 
     it "should implement mutual exclusion" do
       @fibers = (0...2).map do
         Fiber.new do |i|
           trace "fiber #{i} begin"
-          @monitor.synchronize do
+          monitor.synchronize do
             trace "fiber #{i} LOCK"
             trace "fiber #{i} yield"
             Fiber.yield
@@ -75,17 +68,17 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
       @fibers = (0...2).map do
         Fiber.new do |i|
           trace "fiber #{i} begin"
-          @monitor.synchronize do
-            trace "fiber #{i} LOCK #{@monitor.mon_count}"
+          monitor.synchronize do
+            trace "fiber #{i} LOCK #{monitor.mon_count}"
             trace "fiber #{i} yield A"
             Fiber.yield
-            @monitor.synchronize do
-              trace "fiber #{i} LOCK #{@monitor.mon_count}"
+            monitor.synchronize do
+              trace "fiber #{i} LOCK #{monitor.mon_count}"
               trace "fiber #{i} yield B"
               Fiber.yield
-              trace "fiber #{i} UNLOCK #{@monitor.mon_count}"
+              trace "fiber #{i} UNLOCK #{monitor.mon_count}"
             end
-            trace "fiber #{i} UNLOCK #{@monitor.mon_count}"
+            trace "fiber #{i} UNLOCK #{monitor.mon_count}"
           end
           trace "fiber #{i} end"
         end
@@ -131,17 +124,17 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
       @fibers = (0...2).map do
         Fiber.new do |i|
           trace "fiber #{i} begin"
-          @monitor.synchronize do
-            trace "fiber #{i} LOCK #{@monitor.mon_count}"
+          monitor.synchronize do
+            trace "fiber #{i} LOCK #{monitor.mon_count}"
             trace "fiber #{i} yield A"
             Fiber.yield
-            @monitor.synchronize do
-              trace "fiber #{i} LOCK #{@monitor.mon_count}"
+            monitor.synchronize do
+              trace "fiber #{i} LOCK #{monitor.mon_count}"
               trace "fiber #{i} yield B"
               Fiber.yield
-              trace "fiber #{i} UNLOCK #{@monitor.mon_count}"
+              trace "fiber #{i} UNLOCK #{monitor.mon_count}"
             end
-            trace "fiber #{i} UNLOCK #{@monitor.mon_count}"
+            trace "fiber #{i} UNLOCK #{monitor.mon_count}"
           end
           trace "fiber #{i} end"
         end
@@ -187,25 +180,25 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
       @fibers = (0...3).map do
         Fiber.new do |i, condition_handling|
           trace "fiber #{i} begin"
-          @monitor.synchronize do
-            trace "fiber #{i} LOCK #{@monitor.mon_count}"
-            @monitor.synchronize do
-              trace "fiber #{i} LOCK #{@monitor.mon_count}"
+          monitor.synchronize do
+            trace "fiber #{i} LOCK #{monitor.mon_count}"
+            monitor.synchronize do
+              trace "fiber #{i} LOCK #{monitor.mon_count}"
               trace "fiber #{i} yield"
               Fiber.yield
               case condition_handling
               when :wait
                 trace "fiber #{i} WAIT"
-                @monitor.condition.wait
+                monitor.condition.wait
                 trace "fiber #{i} UNWAIT"
               when :signal
                 trace "fiber #{i} SIGNAL"
-                @monitor.condition.signal
+                monitor.condition.signal
                 trace "fiber #{i} UNSIGNAL"
               end
-              trace "fiber #{i} UNLOCK #{@monitor.mon_count}"
+              trace "fiber #{i} UNLOCK #{monitor.mon_count}"
             end
-            trace "fiber #{i} UNLOCK #{@monitor.mon_count}"
+            trace "fiber #{i} UNLOCK #{monitor.mon_count}"
           end
           trace "fiber #{i} end"
         end
@@ -272,7 +265,7 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
       allow(EM).to receive(:cancel_timer) { |block| cancel_timer(block) }
     end
 
-    describe "poll" do
+    context "poll" do
       it "should return added entries immediately" do
         spec = case Rails::VERSION::MAJOR
                when 4
@@ -329,15 +322,6 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
     let(:client) { double(Mysql2::EM::Client) }
 
     context "with more than 1 connection in the pool" do
-      let(:version_specific_expectation) do
-        case Rails::VERSION::MAJOR
-        when 4
-          "SET  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483, @@SESSION.sql_mode = 'STRICT_ALL_TABLES'"
-        else
-          "SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483"
-        end
-      end
-
       before :each do
         ActiveRecord::Base.establish_connection(
           :adapter => 'fibered_mysql2',
@@ -363,6 +347,11 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
       end
 
       it "should serve separate connections per fiber" do
+        version_specific_expectation = if Rails::VERSION::MAJOR > 4
+                                         "SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483"
+                                       else
+                                         "SET  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483, @@SESSION.sql_mode = 'STRICT_ALL_TABLES'"
+                                       end
         expect(client).to receive(:query) do |*args|
           expect(args).to eq([version_specific_expectation])
         end.exactly(2).times
@@ -491,9 +480,5 @@ describe FiberedMysql2::FiberedDatabaseConnectionPool do
 
   def cancel_timer(timer_block)
     @timers.delete_if { |block| block == timer_block }
-  end
-
-  def store_exception(args)
-    @exceptions << args
   end
 end
