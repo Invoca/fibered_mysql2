@@ -165,22 +165,6 @@ module FiberedMysql2
       end
     end
 
-    def acquire_connection(checkout_timeout = @checkout_timeout)
-      if connection = @available.poll
-        connection
-      elsif @connections.size < @size
-        case Rails::VERSION::MAJOR
-        when 4
-          checkout_new_connection
-        else
-          try_to_checkout_new_connection
-        end
-      else
-        reap
-        @available.poll(checkout_timeout)
-      end
-    end
-
     if Rails::VERSION::MAJOR > 4
       def release_connection(owner_thread = Fiber.current)
         if (conn = @thread_cached_conns.delete(connection_cache_key(owner_thread)))
@@ -198,13 +182,17 @@ module FiberedMysql2
       end
     end
 
-    def checkout
+    def checkout(checkout_timeout = @checkout_timeout)
       begin
         reap_connections
       rescue => ex
         ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
       end
-      super
+      if Rails::VERSION::MAJOR > 4
+        super
+      else
+        super()
+      end
     end
 
     def reap_connections
