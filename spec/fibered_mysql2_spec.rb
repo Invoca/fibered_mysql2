@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 RSpec.describe FiberedMysql2 do
-  it "has a version number" do
-    expect(FiberedMysql2::VERSION).not_to be nil
+  describe 'VERSION' do
+    subject { FiberedMysql2::VERSION }
+    it { should_not be_nil }
   end
 end
