@@ -62,7 +62,7 @@ class TimerHelper
   end
 end
 
-describe FiberedMysql2::FiberedDatabaseConnectionPool do
+RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
   let(:em_helper) { EmHelper.new }
   
   before do

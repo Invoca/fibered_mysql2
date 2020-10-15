@@ -30,7 +30,10 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
       allow(Mysql2::EM::Client).to receive(:new) { |config| client }
 
       connection = ActiveRecord::Base.connection
-      allow(connection).to receive(:supports_lazy_transactions?).and_return(false)
+      if Rails::VERSION::MAJOR == 6
+        allow(connection).to receive(:supports_lazy_transactions?).and_return(false)
+      end
+
       connection.transaction do
         connection.exec_query("show tables")
       end
