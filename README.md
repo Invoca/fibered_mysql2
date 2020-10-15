@@ -29,7 +29,7 @@ Behaves the same as `ActiveRecord::ConnectionAdapters::EMMysql2Adapter` but with
 ```ruby
 connection = FiberedMysql2::FiberedMysql2Adapter.new(client, logger, options, config)
 connection.lease
-connection.expire // Rails 5+ only
+connection.expire # Rails 5+ only
 ```
 
 ## Development
