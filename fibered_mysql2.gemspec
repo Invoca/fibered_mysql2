@@ -7,16 +7,18 @@ require "fibered_mysql2/version"
 Gem::Specification.new do |spec|
   spec.name          = "fibered_mysql2"
   spec.version       = FiberedMysql2::VERSION
-  spec.authors       = ["Octothorp"]
-  spec.email         = ["octothorp@invoca.com"]
+  spec.authors       = ["Invoca Development"]
+  spec.email         = ["development@invoca.com"]
 
   spec.summary       = "An adapter for fibered mysql2"
   spec.homepage      = "https://github.com/Invoca/fibered_mysql2"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
   # to allow pushing to a single host or delete this section to allow pushing to any host.
-  spec.metadata["allowed_push_host"] = "https://rubygems.org"
-  spec.metadata["homepage_uri"]      = spec.homepage
+  spec.metadata = {
+    "allowed_push_host" => "https://rubygems.org",
+    "homepage_uri"      => spec.homepage
+  }
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
