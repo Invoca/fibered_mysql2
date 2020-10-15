@@ -31,15 +31,17 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
     it { should eq(Fiber.current) }
 
     if Rails::VERSION::MAJOR > 4
-      it 'raises if connection is already used by the current Fiber' do
-        adapter.lease
-        expect{ subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot lease connection, it is already leased by the current fiber.")
-      end
+      context 'if the connection is already being used' do
+        before { adapter.lease }
 
-      it 'raises if the connection is used by another Fiber' do
-        adapter.lease
-        new_fiber = Fiber.new { subject }
-        expect{ new_fiber.resume }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot lease connection, it is already in use by a different fiber/)
+        it 'by the current Fiber' do
+          expect{ subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot lease connection, it is already leased by the current fiber.")
+        end
+
+        it 'by another Fiber' do
+          new_fiber = Fiber.new { subject }
+          expect{ new_fiber.resume }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot lease connection, it is already in use by a different fiber/)
+        end
       end
     end
   end
@@ -48,20 +50,21 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
     context '#expire' do
       subject { adapter.expire }
 
-      it 'sets the connection @owner to nil when in use' do
-        adapter.lease
-        expect(subject).to be_nil
+      context 'if the connection is not in use' do
+        it 'raises' do
+          expect{ subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot expire connection, it is not currently leased.")
+        end
       end
 
-      it 'raises if the connection is not in use' do
-        expect{ subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot expire connection, it is not currently leased.")
-      end
+      context 'if the connection is being used' do
+        before { adapter.lease }
 
-      it 'raises if the connection is owned by a different Fiber' do
-        adapter.lease
+        it { should be_nil }
 
-        new_fiber = Fiber.new { subject }
-        expect{ new_fiber.resume }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot expire connection.+it is owned by a different fiber/)
+        it 'by a different Fiber' do
+          new_fiber = Fiber.new { subject }
+          expect{ new_fiber.resume }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot expire connection.+it is owned by a different fiber/)
+        end
       end
     end
   end
