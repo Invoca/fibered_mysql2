@@ -124,11 +124,43 @@ module FiberedMysql2
       def cached_connections
         @reserved_connections
       end
+
+      def current_connection_id
+        ActiveRecord::Base.connection_id ||= Fiber.current.object_id
+      end
+
+      def checkout
+        begin
+          reap_connections
+        rescue => ex
+          ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
+        end
+        super
+      end
     end
 
     module Adapter_5_2
       def cached_connections
         @thread_cached_conns
+      end
+
+      def current_connection_id
+        connection_cache_key(current_thread)
+      end
+
+      def checkout(checkout_timeout = @checkout_timeout)
+        begin
+          reap_connections
+        rescue => ex
+          ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
+        end
+        super
+      end
+
+      def release_connection(owner_thread = Fiber.current)
+        if (conn = @thread_cached_conns.delete(connection_cache_key(owner_thread)))
+          checkin(conn)
+        end
       end
     end
 
@@ -162,36 +194,6 @@ module FiberedMysql2
             cached_connections[current_connection_id] = checkout
           end
         end
-      end
-    end
-
-    if Rails::VERSION::MAJOR > 4
-      def release_connection(owner_thread = Fiber.current)
-        if (conn = @thread_cached_conns.delete(connection_cache_key(owner_thread)))
-          checkin(conn)
-        end
-      end
-    end
-
-    def current_connection_id
-      case Rails::VERSION::MAJOR
-      when 4
-        ActiveRecord::Base.connection_id ||= Fiber.current.object_id
-      else
-        connection_cache_key(current_thread)
-      end
-    end
-
-    def checkout(checkout_timeout = @checkout_timeout)
-      begin
-        reap_connections
-      rescue => ex
-        ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
-      end
-      if Rails::VERSION::MAJOR > 4
-        super
-      else
-        super()
       end
     end
 
