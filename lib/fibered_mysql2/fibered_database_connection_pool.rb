@@ -171,10 +171,10 @@ module FiberedMysql2
       include Adapter_5_2
     end
 
-    def initialize(connection_spec)
+    def initialize(connection_spec, *args, **keyword_args)
       connection_spec.config[:reaping_frequency] and raise "reaping_frequency is not supported (the ActiveRecord Reaper is thread-based)"
 
-      super(connection_spec)
+      super(connection_spec, *args, **keyword_args)
 
       @reaper = nil # no need to keep a reference to this since it does nothing in this sub-class
 
