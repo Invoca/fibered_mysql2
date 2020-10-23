@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2020-10-23
 ### Added
 - Added an adapter for Rails 4, 5, and 6.
 - Added appraisals for Rails 4, 5, and 6.

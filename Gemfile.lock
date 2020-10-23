@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    fibered_mysql2 (0.1.0.pre.5)
+    fibered_mysql2 (0.1.0)
       em-synchrony (~> 1.0)
       rails (>= 4.2, < 7)
 
