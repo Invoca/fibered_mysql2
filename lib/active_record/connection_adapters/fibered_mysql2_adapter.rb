@@ -49,6 +49,18 @@ module FiberedMysql2
         raise ::ActiveRecord::ActiveRecordError, "Cannot expire connection, it is not currently leased."
       end
     end
+
+    def steal!
+      if in_use?
+        if @owner != Fiber.current
+          pool.send :remove_connection_from_thread_cache, self, @owner
+
+          @owner = Fiber.current
+        end
+      else
+        raise ::ActiveRecord::ActiveRecordError, "Cannot steal connection, it is not currently leased."
+      end
+    end
   end
 
   class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::EMMysql2Adapter

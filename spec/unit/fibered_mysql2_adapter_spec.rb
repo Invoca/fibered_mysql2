@@ -67,5 +67,38 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
         end
       end
     end
+
+    context '#steal!' do
+      subject { adapter.steal! }
+
+      context 'if the connection is not in use' do
+        it 'raises' do
+          expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot steal connection, it is not currently leased.")
+        end
+      end
+
+      context 'if the connection is being used' do
+        before do
+          ActiveRecord::Base.establish_connection(
+            adapter: 'fibered_mysql2',
+            database: 'widgets',
+            username: 'root',
+            pool: 10
+          )
+
+          adapter.pool = ActiveRecord::Base.connection_pool
+          adapter.lease
+        end
+
+        it { should be_nil }
+
+        it 'by a different Fiber' do
+          new_fiber = Fiber.new { subject }
+          new_fiber.resume
+
+          expect(adapter.owner).to eq(new_fiber)
+        end
+      end
+    end
   end
 end
