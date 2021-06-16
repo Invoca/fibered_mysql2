@@ -20,10 +20,10 @@ module FiberedMysql2
     def lease
       if in_use?
         msg = "Cannot lease connection, ".dup
-        if @owner == Fiber.current
+        if owner_fiber == Fiber.current
           msg << "it is already leased by the current fiber."
         else
-          msg << "it is already in use by a different fiber: #{@owner}. " \
+          msg << "it is already in use by a different fiber: #{owner_fiber}. " \
                   "Current fiber: #{Fiber.current}."
         end
         raise ::ActiveRecord::ActiveRecordError, msg
@@ -37,9 +37,9 @@ module FiberedMysql2
         # Because we are actively releasing connections from dead fibers, we only want
         # to enforce that we're expiring the current fibers connection, iff the owner
         # of the connection is still alive.
-        if @owner.alive? && @owner != Fiber.current
+        if owner_fiber.alive? && owner_fiber != Fiber.current
           raise ::ActiveRecord::ActiveRecordError, "Cannot expire connection, " \
-            "it is owned by a different fiber: #{@owner}. " \
+            "it is owned by a different fiber: #{owner_fiber}. " \
             "Current fiber: #{Fiber.current}."
         end
 
@@ -52,14 +52,21 @@ module FiberedMysql2
 
     def steal!
       if in_use?
-        if @owner != Fiber.current
-          pool.send :remove_connection_from_thread_cache, self, @owner
+        if owner_fiber != Fiber.current
+          pool.send :remove_connection_from_thread_cache, self, owner_fiber
 
           @owner = Fiber.current
         end
       else
         raise ::ActiveRecord::ActiveRecordError, "Cannot steal connection, it is not currently leased."
       end
+    end
+
+    private
+
+    def owner_fiber
+      @owner.is_a?(Fiber) or raise "@owner must be a Fiber! Found #{@owner.inspect}"
+      @owner
     end
   end
 

@@ -100,5 +100,13 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
         end
       end
     end
+
+    context 'other mixins' do
+      it 'raises if @owner has been overwritten with a non-Fiber' do
+        adapter.instance_variable_set(:@owner, Thread.new { })
+
+        expect { adapter.expire }.to raise_exception(RuntimeError, /@owner must be a Fiber!/i)
+      end
+    end
   end
 end
