@@ -4,6 +4,10 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2021-06-17
+### Fixed
+- When checking that @owner is a Fiber, allow nil.
+
 ## [0.1.2] - 2021-06-16
 ### Fixed
 - Added checking to be certain that @owner is never overwritten with a non-Fiber by another mixin.
@@ -23,6 +27,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 - Added TravisCI unit test pipeline.
 - Added coverage reports via Coveralls.
 
+[0.1.3]: https://github.com/Invoca/fibered_mysql2/compare/v0.1.2..v0.1.3
 [0.1.2]: https://github.com/Invoca/fibered_mysql2/compare/v0.1.1..v0.1.2
 [0.1.1]: https://github.com/Invoca/fibered_mysql2/compare/v0.1.0..v0.1.1
 [0.1.0]: https://github.com/Invoca/fibered_mysql2/tree/v0.1.0

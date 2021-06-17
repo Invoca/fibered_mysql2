@@ -12,5 +12,6 @@ gem 'mimemagic',  '~> 0.3',     git: 'git@github.com:Invoca/mimemagic',         
 gem 'mysql2',     '0.4.5'
 gem 'pry',        '~> 0.13'
 gem 'pry-byebug', '~> 3.9'
+gem 'rails',      '< 6.1'
 gem 'rake',       '~> 10.0'
 gem 'rspec',      '~> 3.0'
