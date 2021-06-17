@@ -107,6 +107,12 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
 
         expect { adapter.expire }.to raise_exception(RuntimeError, /@owner must be a Fiber!/i)
       end
+
+      it "doesn't raise if @owner is nil" do
+        adapter.instance_variable_set(:@owner, nil)
+
+        expect { adapter.send(:owner_fiber) }.to_not raise_exception
+      end
     end
   end
 end

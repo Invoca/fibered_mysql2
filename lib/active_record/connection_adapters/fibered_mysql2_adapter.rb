@@ -65,7 +65,8 @@ module FiberedMysql2
     private
 
     def owner_fiber
-      @owner.is_a?(Fiber) or raise "@owner must be a Fiber! Found #{@owner.inspect}"
+      @owner.nil? || @owner.is_a?(Fiber) or
+        raise "@owner must be a Fiber! Found #{@owner.inspect}"
       @owner
     end
   end
