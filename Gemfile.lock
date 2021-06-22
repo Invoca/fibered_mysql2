@@ -8,7 +8,7 @@ GIT
 PATH
   remote: .
   specs:
-    fibered_mysql2 (0.1.3)
+    fibered_mysql2 (0.1.4.pre.1)
       em-synchrony (~> 1.0)
       rails (>= 4.2, < 7)
 
