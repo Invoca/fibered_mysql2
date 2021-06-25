@@ -64,7 +64,7 @@ end
 
 RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
   let(:em_helper) { EmHelper.new }
-  
+
   before do
     allow(EM).to receive(:next_tick) { |&block| em_helper.queue_next_tick(&block) }
   end
@@ -346,6 +346,15 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
         queue.add(connection)
         em_helper.run_next_ticks
         expect(polled).to eq([connection])
+      end
+    end
+
+    context 'Reaper' do
+      subject { ActiveRecord::ConnectionAdapters::ConnectionPool.new(spec) }
+      it 'should be explicitly disabled and therefore not start up a reaper thread' do
+        threads_before = Thread.list
+        subject
+        expect(Thread.list - threads_before).to be_empty
       end
     end
   end
