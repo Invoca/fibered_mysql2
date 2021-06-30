@@ -8,7 +8,6 @@ gemspec
 gem 'appraisal'
 gem 'bundler',    '~> 1.8'
 gem 'coveralls', require: false
-gem 'mimemagic',  '~> 0.3',     git: 'git@github.com:Invoca/mimemagic',                      ref: 'b084ce8d50c080f5a312156498be21a541fe72a2'
 gem 'mysql2',     '0.4.5'
 gem 'pry',        '~> 0.13'
 gem 'pry-byebug', '~> 3.9'
