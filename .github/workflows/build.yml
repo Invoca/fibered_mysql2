@@ -3,7 +3,7 @@ name: FiberedMySQL2 Gem Build
 on: [push, pull_request]
 jobs:
   test:
-    name: FiberedMySQL2 Gem Unit Tests
+    name: Unit Tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
