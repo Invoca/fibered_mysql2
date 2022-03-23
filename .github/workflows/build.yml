@@ -11,7 +11,6 @@ jobs:
         ruby: [2.5, 2.6]
         gemfile:
         - Gemfile
-        - gemfiles/rails_4.gemfile
         - gemfiles/rails_5.gemfile
         - gemfiles/rails_5.gemfile
     env:
@@ -24,4 +23,3 @@ jobs:
         bundler: 1.17.3
         bundler-cache: true
     - run: bundle exec rspec
-
