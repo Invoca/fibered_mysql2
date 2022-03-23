@@ -187,7 +187,7 @@ PLATFORMS
 
 DEPENDENCIES
   appraisal
-  bundler (~> 1.8)
+  bundler (~> 2.2)
   coveralls
   fibered_mysql2!
   mysql2 (~> 0.4.5)
@@ -198,4 +198,4 @@ DEPENDENCIES
   rspec (~> 3.0)
 
 BUNDLED WITH
-   1.17.3
+   2.2.29
