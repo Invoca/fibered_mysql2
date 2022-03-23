@@ -12,7 +12,7 @@ jobs:
         gemfile:
         - Gemfile
         - gemfiles/rails_5.gemfile
-        - gemfiles/rails_5.gemfile
+        - gemfiles/rails_6.gemfile
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:
