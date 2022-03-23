@@ -90,8 +90,6 @@ module FiberedMysql2
       FiberedConditionVariable.new(self)
     end
 
-    private
-
     # Initializes the FiberedMonitorMixin after being included in a class
     def mon_initialize
       @mon_owner = nil
@@ -102,6 +100,8 @@ module FiberedMysql2
     def mon_check_owner
       @mon_owner == Fiber.current or raise FiberError, "current fiber not owner"
     end
+
+    private
 
     def mon_enter_for_cond(count)
       @mon_owner = Fiber.current
