@@ -101,12 +101,12 @@ GEM
       nokogiri (~> 1)
       rake
     mini_mime (1.0.2)
-    mini_portile2 (2.8.0)
+    mini_portile2 (2.6.1)
     minitest (5.14.3)
     mysql2 (0.4.10)
     nio4r (2.5.4)
-    nokogiri (1.13.3)
-      mini_portile2 (~> 2.8.0)
+    nokogiri (1.12.5)
+      mini_portile2 (~> 2.6.1)
       racc (~> 1.4)
     pry (0.13.1)
       coderay (~> 1.1)
@@ -193,6 +193,7 @@ DEPENDENCIES
   coveralls
   fibered_mysql2!
   mysql2 (~> 0.4.5)
+  nokogiri (< 1.13)
   pry (~> 0.13)
   pry-byebug (~> 3.9)
   rails (< 6.1)
