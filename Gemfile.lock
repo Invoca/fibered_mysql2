@@ -193,7 +193,6 @@ DEPENDENCIES
   coveralls
   fibered_mysql2!
   mysql2 (~> 0.4.5)
-  nokogiri (~> 1.13)
   pry (~> 0.13)
   pry-byebug (~> 3.9)
   rails (< 6.1)
