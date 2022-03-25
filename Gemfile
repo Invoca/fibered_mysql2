@@ -6,7 +6,6 @@ git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
 gemspec
 
 gem 'appraisal'
-gem 'bundler',    '~> 2.2'
 gem 'coveralls', require: false
 gem 'mysql2',     '~> 0.4.5'
 gem 'nokogiri',   '< 1.13'

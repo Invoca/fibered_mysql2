@@ -189,7 +189,6 @@ PLATFORMS
 
 DEPENDENCIES
   appraisal
-  bundler (~> 2.2)
   coveralls
   fibered_mysql2!
   mysql2 (~> 0.4.5)
