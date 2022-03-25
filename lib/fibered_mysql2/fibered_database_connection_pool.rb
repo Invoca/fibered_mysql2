@@ -12,7 +12,73 @@ require 'fibered_mysql2/fibered_mutex_with_waiter_priority'
 EventMachine::Synchrony::Thread::Mutex.prepend(FiberedMysql2::FiberedMutexWithWaiterPriority)
 
 module FiberedMysql2
-  class FiberedConditionVariable < MonitorMixin::ConditionVariable
+  class FiberedConditionVariable
+    EXCEPTION_NEVER = {Exception => :never}.freeze
+    EXCEPTION_IMMEDIATE = {Exception => :immediate}.freeze
+
+    #
+    # FIXME: This isn't documented in Nutshell.
+    #
+    # Since MonitorMixin.new_cond returns a ConditionVariable, and the example
+    # above calls while_wait and signal, this class should be documented.
+    #
+    class Timeout < Exception; end
+
+    #
+    # Releases the lock held in the associated monitor and waits; reacquires the lock on wakeup.
+    #
+    # If +timeout+ is given, this method returns after +timeout+ seconds passed,
+    # even if no other thread doesn't signal.
+    #
+    def wait(timeout = nil)
+      Thread.handle_interrupt(EXCEPTION_NEVER) do
+        @monitor.__send__(:mon_check_owner)
+        count = @monitor.__send__(:mon_exit_for_cond)
+        begin
+          Thread.handle_interrupt(EXCEPTION_IMMEDIATE) do
+            @cond.wait(@monitor.instance_variable_get(:@mon_mutex), timeout)
+          end
+          return true
+        ensure
+          @monitor.__send__(:mon_enter_for_cond, count)
+        end
+      end
+    end
+
+    #
+    # Calls wait repeatedly while the given block yields a truthy value.
+    #
+    def wait_while
+      while yield
+        wait
+      end
+    end
+
+    #
+    # Calls wait repeatedly until the given block yields a truthy value.
+    #
+    def wait_until
+      until yield
+        wait
+      end
+    end
+
+    #
+    # Wakes up the first thread in line waiting for this lock.
+    #
+    def signal
+      @monitor.__send__(:mon_check_owner)
+      @cond.signal
+    end
+
+    #
+    # Wakes up all threads waiting for this lock.
+    #
+    def broadcast
+      @monitor.__send__(:mon_check_owner)
+      @cond.broadcast
+    end
+
     def initialize(monitor)
       @monitor = monitor
       @cond = EM::Synchrony::Thread::ConditionVariable.new
@@ -90,8 +156,6 @@ module FiberedMysql2
       FiberedConditionVariable.new(self)
     end
 
-    private
-
     # Initializes the FiberedMonitorMixin after being included in a class
     def mon_initialize
       @mon_owner = nil
@@ -102,6 +166,8 @@ module FiberedMysql2
     def mon_check_owner
       @mon_owner == Fiber.current or raise FiberError, "current fiber not owner"
     end
+
+    private
 
     def mon_enter_for_cond(count)
       @mon_owner = Fiber.current

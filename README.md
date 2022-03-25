@@ -21,7 +21,7 @@ Or install it yourself as:
     $ gem install fibered_mysql2
 
 ## Support
-Tested with Rails versions 4.2, 5.2, and 6.0.
+Tested with Rails versions 5.2 and 6.0.
 
 ## Usage
 

@@ -4,6 +4,11 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - Unreleased
+### Changed
+- Upgraded Bundler to 2.2.29 and Ruby to 2.7.5. Removed support for Rails 4.
+- Modified FiberedMysql2::FiberedConditionVariable class to ensure compatibility with newer Ruby versions.
+
 ## [0.1.4] - 2021-06-25
 ### Fixed
 - Disable the ConnectionPool::Reaper in Rails 5 and 6 as it was in 4. This is important since it is

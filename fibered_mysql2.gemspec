@@ -30,5 +30,5 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency 'em-synchrony', '~> 1.0'
-  spec.add_dependency 'rails', '>= 4.2', '< 7'
+  spec.add_dependency 'rails', '>= 5.2', '< 7'
 end
