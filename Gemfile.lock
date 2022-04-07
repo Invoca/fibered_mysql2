@@ -103,7 +103,7 @@ GEM
     mini_mime (1.0.2)
     mini_portile2 (2.6.1)
     minitest (5.14.3)
-    mysql2 (0.4.10)
+    mysql2 (0.5.3)
     nio4r (2.5.4)
     nokogiri (1.12.5)
       mini_portile2 (~> 2.6.1)
@@ -191,7 +191,7 @@ DEPENDENCIES
   appraisal
   coveralls
   fibered_mysql2!
-  mysql2 (~> 0.4.5)
+  mysql2 (~> 0.5)
   nokogiri (< 1.13)
   pry (~> 0.13)
   pry-byebug (~> 3.9)

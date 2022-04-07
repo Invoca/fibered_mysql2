@@ -7,7 +7,7 @@ gemspec
 
 gem 'appraisal'
 gem 'coveralls', require: false
-gem 'mysql2',     '~> 0.4.5'
+gem 'mysql2',     '~> 0.5'
 gem 'nokogiri',   '< 1.13'
 gem 'pry',        '~> 0.13'
 gem 'pry-byebug', '~> 3.9'
