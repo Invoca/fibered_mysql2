@@ -75,8 +75,14 @@ module FiberedMysql2
     case ::Rails::VERSION::MAJOR
     when 4
       include FiberedMysql2Adapter_4_2
-    when 5, 6
+    when 5
       include FiberedMysql2Adapter_5_2
+    when 6
+      include FiberedMysql2Adapter_5_2
+
+      def supports_lazy_transactions?
+        false
+      end
     end
 
     def initialize(*args)
