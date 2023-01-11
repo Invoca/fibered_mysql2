@@ -47,6 +47,44 @@ module EM::Synchrony
               transaction
             end
           end
+
+          def materialize_transactions
+            return if @materializing_transactions
+            return unless @has_unmaterialized_transactions
+
+            @connection.lock.synchronize do
+              begin
+                @materializing_transactions = true
+                _current_stack.each { |t| t.materialize! unless t.materialized? }
+              ensure
+                @materializing_transactions = false
+              end
+              @has_unmaterialized_transactions = false
+            end
+          end
+
+          def commit_transaction
+            @connection.lock.synchronize do
+              transaction = _current_stack.last
+
+              begin
+                transaction.before_commit_records
+              ensure
+                _current_stack.pop
+              end
+
+              transaction.commit
+              transaction.commit_records
+            end
+          end
+
+          def rollback_transaction(transaction = nil)
+            @connection.lock.synchronize do
+              transaction ||= @_current_stack.pop
+              transaction.rollback
+              transaction.rollback_records
+            end
+          end
         end
       end
     end
