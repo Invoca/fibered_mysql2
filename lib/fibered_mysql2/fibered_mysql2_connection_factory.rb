@@ -48,6 +48,9 @@ module EM::Synchrony
             end
           end
 
+          # Overriding the ActiveRecord::TransactionManager#materialize_transactions method to use
+          # fiber safe the _current_stack instead of the @stack instance variable. when marterializing
+          # transactions.
           def materialize_transactions
             return if @materializing_transactions
             return unless @has_unmaterialized_transactions
@@ -63,6 +66,9 @@ module EM::Synchrony
             end
           end
 
+          # Overriding the ActiveRecord::TransactionManager#commit_transaction method to use
+          # fiber safe the _current_stack instead of the @stack instance variable. when marterializing
+          # transactions.
           def commit_transaction
             @connection.lock.synchronize do
               transaction = _current_stack.last
@@ -78,9 +84,12 @@ module EM::Synchrony
             end
           end
 
+          # Overriding the ActiveRecord::TransactionManager#rollback_transaction method to use
+          # fiber safe the _current_stack instead of the @stack instance variable. when marterializing
+          # transactions.
           def rollback_transaction(transaction = nil)
             @connection.lock.synchronize do
-              transaction ||= @_current_stack.pop
+              transaction ||= _current_stack.pop
               transaction.rollback
               transaction.rollback_records
             end
