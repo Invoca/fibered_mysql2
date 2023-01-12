@@ -72,12 +72,24 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
         context "with lazy transactions enabled" do
           before { connection.enable_lazy_transactions! }
 
-          it 'does not start a transaction without any queries' do
+          it 'does not materialize a transaction without any queries' do
             expect(client).to_not receive(:query).with("BEGIN")
             expect(client).to_not receive(:query).with("COMMIT")
 
             connection.transaction do
               expect(connection.current_transaction.materialized?).to be_falsey
+            end
+          end
+
+          it 'materializes a transaction when the first query is performed' do
+            expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
+            expect(client).to receive(:query).with("show tables").and_return(stub_mysql_client_result)
+            expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
+
+            connection.transaction do
+              expect(connection.current_transaction.materialized?).to be_falsey
+              connection.exec_query("show tables")
+              expect(connection.current_transaction.materialized?).to be_truthy
             end
           end
         end
