@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - Unreleased
+## [0.2.0] - 2023-01-12
 ### Added
 - Added support for Rails 6+ by adding knowledge of lazy transactions to the adapter.
 
