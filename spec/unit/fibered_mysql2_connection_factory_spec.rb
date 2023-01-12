@@ -3,52 +3,97 @@
 require_relative '../../lib/fibered_mysql2/fibered_mysql2_connection_factory'
 
 RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
-  let(:client) { double(Mysql2::EM::Client) }
-  
-  before do
-    ActiveRecord::Base.establish_connection(
-      :adapter => 'fibered_mysql2',
-      :database => 'widgets',
-      :username => 'root',
-      :pool => 10
-    )
+  let(:stub_mysql_client_result) { Struct.new(:fields, :to_a).new([], []) }
+
+  describe "#fibered_mysql2_connection" do
+    let(:client) { double(Mysql2::EM::Client) }
+
+    context 'when fibered_mysql2 adapter is used' do
+      subject { ActiveRecord::Base.connection }
+
+      before do
+        expect(Mysql2::EM::Client).to receive(:new).and_return(client)
+        allow(client).to receive(:query_options) { {} }
+        allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
+        allow(client).to receive(:ping) { true }
+        allow(client).to receive(:query).and_return(stub_mysql_client_result)
+        ActiveRecord::Base.establish_connection(
+          :adapter => 'fibered_mysql2',
+          :database => 'widgets',
+          :username => 'root',
+          :pool => 10
+        )
+      end
+
+      it { is_expected.to be_a(FiberedMysql2::FiberedMysql2Adapter) }
+    end
   end
 
-  context "transactions" do
-    it "should work with basic nesting" do
+  describe "transactions" do
+    let(:client) { double(Mysql2::EM::Client) }
+    let(:logger) { Logger.new(STDOUT) }
+    let(:options) { [] }
+    let(:config) { {} }
+    let(:connection) { FiberedMysql2::FiberedMysql2Adapter.new(client, logger, options, config) }
+
+    before do
       allow(client).to receive(:query_options) { {} }
       allow(client).to receive(:escape) { |query| query }
-      query_args = []
-      stub_mysql_client_result = Struct.new(:fields, :to_a).new([], [])
-      expect(client).to receive(:query) do |*args|
-        query_args << args
-        stub_mysql_client_result
-      end.at_least(1).times
       allow(client).to receive(:ping) { true }
       allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
+      allow(client).to receive(:query).and_return(stub_mysql_client_result)
+    end
 
-      allow(Mysql2::EM::Client).to receive(:new) { |config| client }
-
-      connection = ActiveRecord::Base.connection
-      if Rails::VERSION::MAJOR == 6
-        allow(connection).to receive(:supports_lazy_transactions?).and_return(false)
-      end
+    it "should work with basic nesting" do
+      expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
+      expect(client).to receive(:query).with("show tables").and_return(stub_mysql_client_result)
+      expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
 
       connection.transaction do
         connection.exec_query("show tables")
       end
-      rails_specific_arg = case Rails::VERSION::MAJOR
-                           when 4
-                             "SET  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483, @@SESSION.sql_mode = 'STRICT_ALL_TABLES'"
-                           else
-                             "SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483"
-                           end
-      expect(query_args).to eq([
-                                   [rails_specific_arg],
-                                   ["BEGIN"],
-                                   ["show tables"],
-                                   ["COMMIT"]
-                               ])
+    end
+
+    if Rails::VERSION::MAJOR >= 6
+      context "with an empty transaction" do
+        context "with lazy transactions disabled" do
+          before { connection.disable_lazy_transactions! }
+
+          it "starts and commits a transaction even without any queries" do
+            expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
+            expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
+
+            connection.transaction do
+              expect(connection.current_transaction.materialized?).to be_truthy
+            end
+          end
+        end
+
+        context "with lazy transactions enabled" do
+          before { connection.enable_lazy_transactions! }
+
+          it 'does not materialize a transaction without any queries' do
+            expect(client).to_not receive(:query).with("BEGIN")
+            expect(client).to_not receive(:query).with("COMMIT")
+
+            connection.transaction do
+              expect(connection.current_transaction.materialized?).to be_falsey
+            end
+          end
+
+          it 'materializes a transaction when the first query is performed' do
+            expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
+            expect(client).to receive(:query).with("show tables").and_return(stub_mysql_client_result)
+            expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
+
+            connection.transaction do
+              expect(connection.current_transaction.materialized?).to be_falsey
+              connection.exec_query("show tables")
+              expect(connection.current_transaction.materialized?).to be_truthy
+            end
+          end
+        end
+      end
     end
   end
 end
