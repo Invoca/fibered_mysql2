@@ -55,7 +55,7 @@ module FiberedMysql2
     private
 
     def owner_task
-      @owner.nil? || @owner == FiberedMysql2::AsyncTask::NoTaskPlaceholder || @owner.is_a?(Async::Task) or
+      @owner.nil? || @owner == AsyncTask::NoTaskPlaceholder || @owner.is_a?(Async::Task) or
         raise "@owner must be an Async::Task or FiberedMysql2::AsyncTask::NoTaskPlaceholder! Found #{@owner.inspect}"
       @owner
     end
