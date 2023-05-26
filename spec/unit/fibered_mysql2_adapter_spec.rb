@@ -130,7 +130,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
       it 'raises if @owner has been overwritten with a non-Fiber' do
         adapter.instance_variable_set(:@owner, Thread.new { })
 
-        expect { adapter.expire }.to raise_exception(RuntimeError, /@owner must be an Async::Task!/i)
+        expect { adapter.expire }.to raise_exception(RuntimeError, /@owner must be an Async::Task or FiberedMysql2::AsyncTask::NoTaskPlaceholder!/i)
       end
 
       it "doesn't raise if @owner is nil" do
