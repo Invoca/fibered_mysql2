@@ -2,7 +2,7 @@
 
 # FiberedMysql2
 
-FiberedMysql2 adds Fiber support to `ActiveRecord::ConnectionAdapters::EMMysql2Adapter`
+FiberedMysql2 adds `Async::Task` support to `ActiveRecord::ConnectionAdapters::Mysql2Adapter`
 
 ## Installation
 
@@ -21,15 +21,15 @@ Or install it yourself as:
     $ gem install fibered_mysql2
 
 ## Support
-Tested with Rails versions 5.2 and 6.0.
+Tested with Rails versions 6.0.
 
 ## Usage
 
-Behaves the same as `ActiveRecord::ConnectionAdapters::EMMysql2Adapter` but with added Fiber safety while leasing/expiring connections.
+Behaves the same as `ActiveRecord::ConnectionAdapters::Mysql2Adapter` but with added Async::Task safety while leasing/expiring connections.
 ```ruby
 connection = FiberedMysql2::FiberedMysql2Adapter.new(client, logger, options, config)
 connection.lease
-connection.expire # Rails 5+ only
+connection.expire
 ```
 
 ## Development

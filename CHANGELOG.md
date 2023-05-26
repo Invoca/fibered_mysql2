@@ -4,6 +4,10 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - Unreleased
+### Changed
+- Dropped support for `EM`, `EM::Synchrony` in favor of Ruby 3.2 and `Async`.
+
 ## [0.2.0] - 2023-01-12
 ### Added
 - Added support for Rails 6+ by adding knowledge of lazy transactions to the adapter.
@@ -41,6 +45,7 @@ threaded, not fibered.
 - Added TravisCI unit test pipeline.
 - Added coverage reports via Coveralls.
 
+[1.0.0]: https://github.com/Invoca/fibered_mysql2/compare/v0.2.0..v1.0.0
 [0.2.0]: https://github.com/Invoca/fibered_mysql2/compare/v0.1.5..v0.2.0
 [0.1.5]: https://github.com/Invoca/fibered_mysql2/compare/v0.1.4..v0.1.5
 [0.1.4]: https://github.com/Invoca/fibered_mysql2/compare/v0.1.3..v0.1.4
