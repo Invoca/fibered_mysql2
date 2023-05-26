@@ -65,7 +65,7 @@ module FiberedMysql2
 
     def reap_connections
       cached_connections.values.each do |connection|
-        unless connection.owner.alive?
+        unless connection.owner == :none || connection.owner.alive?
           checkin(connection)
         end
       end
