@@ -27,7 +27,7 @@ module AsyncMysql2
         # Because we are actively releasing connections from dead tasks, we only want
         # to enforce that we're expiring the current task's connection, iff the owner
         # of the connection is still alive.
-        if ot.alive? && ot != (current_task = AsyncTask.current_or_none)
+        if (ot == :none || ot.alive?) && ot != (current_task = AsyncTask.current_or_none)
           raise ::ActiveRecord::ActiveRecordError, "Cannot expire connection; " \
             "it is owned by a different Async::Task: #{ot}. " \
             "Current Async::Task: #{current_task}."
@@ -55,8 +55,8 @@ module AsyncMysql2
     private
 
     def owner_task
-      @owner.nil? || @owner.is_a?(Async::Task) or
-        raise "@owner must be an Async::Task! Found #{@owner.inspect}"
+      @owner.nil? || @owner == :none || @owner.is_a?(Async::Task) or
+        raise "@owner must be an Async::Task or :none! Found #{@owner.inspect}"
       @owner
     end
   end
