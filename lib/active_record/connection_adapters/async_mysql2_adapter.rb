@@ -3,13 +3,14 @@
 require 'active_model'
 require 'active_record/errors'
 require 'active_record/connection_adapters/mysql2_adapter'
+require 'async_mysql2/async_task'
 
 module AsyncMysql2
   module Adapter_6
     def lease
       if (ot = owner_task)
         msg = +"Cannot lease connection; "
-        if ot == (current_task = (Async::Task.current if Async::Task.current?))
+        if ot == (current_task = AsyncTask.current_or_none)
           msg << "it is already leased by the current Async::Task."
         else
           msg << "it is already in use by a different Async::Task: #{ot}. " \
@@ -18,7 +19,7 @@ module AsyncMysql2
         raise ::ActiveRecord::ActiveRecordError, msg
       end
 
-      @owner = Async::Task.current
+      @owner = AsyncTask.current_or_none
     end
 
     def expire
@@ -26,7 +27,7 @@ module AsyncMysql2
         # Because we are actively releasing connections from dead tasks, we only want
         # to enforce that we're expiring the current task's connection, iff the owner
         # of the connection is still alive.
-        if ot.alive? && ot != (current_task = (Async::Task.current if Async::Task.current?))
+        if ot.alive? && ot != (current_task = AsyncTask.current_or_none)
           raise ::ActiveRecord::ActiveRecordError, "Cannot expire connection; " \
             "it is owned by a different Async::Task: #{ot}. " \
             "Current Async::Task: #{current_task}."
@@ -41,7 +42,7 @@ module AsyncMysql2
 
     def steal!
       if (ot = owner_task)
-        if ot != (current_task = (Async::Task.current if Async::Task.current?))
+        if ot != (current_task = AsyncTask.current_or_none)
           pool.send :remove_connection_from_thread_cache, self, ot
 
           @owner = current_task

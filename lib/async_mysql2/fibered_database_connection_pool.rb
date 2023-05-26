@@ -30,7 +30,7 @@ module AsyncMysql2
       super
     end
 
-    def release_connection(owner_task = Async::Task.current)
+    def release_connection(owner_task = AsyncTask.current_or_none)
       if (conn = @thread_cached_conns.delete(connection_cache_key(owner_task)))
         checkin(conn)
       end
@@ -81,7 +81,7 @@ module AsyncMysql2
     end
 
     def current_thread
-      Async::Task.current if Async::Task.current?
+      AsyncTask.current_or_none
     end
   end
 end
