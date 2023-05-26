@@ -8,8 +8,19 @@ require 'bundler/setup'
 require 'rails'
 require 'active_record'
 require 'fibered_mysql2'
+require "rspec/support/object_formatter"
+
+module AsyncHelper
+  def in_concurrent_environment(&block)
+    Async(&block)
+  end
+end
 
 RSpec.configure do |config|
+  config.include AsyncHelper
+
+  RSpec::Support::ObjectFormatter.default_instance.max_formatted_output_length = 2_000
+
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = ".rspec_status"
 

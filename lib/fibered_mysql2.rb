@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'async'
 require 'fibered_mysql2/version'
 require_relative '../lib/active_record/connection_adapters/fibered_mysql2_adapter'
 require 'fibered_mysql2/fibered_database_connection_pool'

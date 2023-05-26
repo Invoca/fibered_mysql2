@@ -3,7 +3,7 @@
 require_relative '../../lib/active_record/connection_adapters/fibered_mysql2_adapter'
 
 RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
-  let(:client) { double(Mysql2::EM::Client) }
+  let(:client) { double(Mysql2::Client) }
   let(:logger) { Logger.new(STDOUT) }
   let(:options) { [] }
   let(:config) { {} }
@@ -28,19 +28,25 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
   context '#lease' do
     subject { adapter.lease }
 
-    it { should eq(Fiber.current) }
+    it { in_concurrent_environment { should eq(Async::Task.current) } }
 
     if Rails::VERSION::MAJOR > 4
       context 'if the connection is already being used' do
-        before { adapter.lease }
-
-        it 'by the current Fiber' do
-          expect{ subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot lease connection, it is already leased by the current fiber.")
+        it 'by the current Async::Task' do
+          in_concurrent_environment do
+            adapter.lease
+            expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot lease connection; it is already leased by the current Async::Task.")
+          end
         end
 
-        it 'by another Fiber' do
-          new_fiber = Fiber.new { subject }
-          expect{ new_fiber.resume }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot lease connection, it is already in use by a different fiber/)
+        it 'by another Async::Task' do
+          in_concurrent_environment do
+            adapter.lease
+            new_task = Async do
+              expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot lease connection; it is already in use by a different Async::Task:/)
+            end
+            new_task.wait
+          end
         end
       end
     end
@@ -52,18 +58,23 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
 
       context 'if the connection is not in use' do
         it 'raises' do
-          expect{ subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot expire connection, it is not currently leased.")
+          in_concurrent_environment do
+            expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot expire connection; it is not currently leased.")
+          end
         end
       end
 
       context 'if the connection is being used' do
-        before { adapter.lease }
+        it { in_concurrent_environment { adapter.lease; should be_nil } }
 
-        it { should be_nil }
-
-        it 'by a different Fiber' do
-          new_fiber = Fiber.new { subject }
-          expect{ new_fiber.resume }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot expire connection.+it is owned by a different fiber/)
+        it 'by a different Async::Task' do
+          in_concurrent_environment do
+            adapter.lease
+            new_task = Async do
+              expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot expire connection; it is owned by a different Async::Task:/)
+            end
+            new_task.wait
+          end
         end
       end
     end
@@ -73,30 +84,44 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
 
       context 'if the connection is not in use' do
         it 'raises' do
-          expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot steal connection, it is not currently leased.")
+          expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot steal connection; it is not currently leased.")
         end
       end
 
       context 'if the connection is being used' do
-        before do
-          ActiveRecord::Base.establish_connection(
-            adapter: 'fibered_mysql2',
-            database: 'widgets',
-            username: 'root',
-            pool: 10
-          )
+        it do
+          in_concurrent_environment do
+            ActiveRecord::Base.establish_connection(
+              adapter: 'fibered_mysql2',
+              database: 'widgets',
+              username: 'root',
+              pool: 10
+            )
 
-          adapter.pool = ActiveRecord::Base.connection_pool
-          adapter.lease
+            adapter.pool = ActiveRecord::Base.connection_pool
+            adapter.lease
+
+            should be_nil
+          end
         end
 
-        it { should be_nil }
+        it 'by a different Async::Task' do
+          in_concurrent_environment do
+            ActiveRecord::Base.establish_connection(
+              adapter: 'fibered_mysql2',
+              database: 'widgets',
+              username: 'root',
+              pool: 10
+            )
 
-        it 'by a different Fiber' do
-          new_fiber = Fiber.new { subject }
-          new_fiber.resume
+            adapter.pool = ActiveRecord::Base.connection_pool
+            adapter.lease
 
-          expect(adapter.owner).to eq(new_fiber)
+            new_task = Async { subject }
+            new_task.wait
+
+            expect(adapter.owner).to eq(new_task)
+          end
         end
       end
     end
@@ -105,13 +130,13 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
       it 'raises if @owner has been overwritten with a non-Fiber' do
         adapter.instance_variable_set(:@owner, Thread.new { })
 
-        expect { adapter.expire }.to raise_exception(RuntimeError, /@owner must be a Fiber!/i)
+        expect { adapter.expire }.to raise_exception(RuntimeError, /@owner must be an Async::Task!/i)
       end
 
       it "doesn't raise if @owner is nil" do
         adapter.instance_variable_set(:@owner, nil)
 
-        expect { adapter.send(:owner_fiber) }.to_not raise_exception
+        expect { adapter.send(:owner_task) }.to_not raise_exception
       end
     end
   end
