@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require_relative '../../lib/fibered_mysql2/fibered_mysql2_connection_factory'
+require_relative '../../lib/async_mysql2/connection_factory'
 
-RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
+RSpec.describe AsyncMysql2::ConnectionFactory do
   let(:stub_mysql_client_result) { Struct.new(:fields, :to_a).new([], []) }
 
   describe "#fibered_mysql2_connection" do
     let(:client) { double(Mysql2::Client) }
 
-    context 'when fibered_mysql2 adapter is used' do
+    context 'when async_mysql2 adapter is used' do
       subject { ActiveRecord::Base.connection }
 
       before do
@@ -18,14 +18,14 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
         allow(client).to receive(:ping) { true }
         allow(client).to receive(:query).and_return(stub_mysql_client_result)
         ActiveRecord::Base.establish_connection(
-          :adapter => 'fibered_mysql2',
+          :adapter => 'async_mysql2',
           :database => 'widgets',
           :username => 'root',
           :pool => 10
         )
       end
 
-      it { in_concurrent_environment { is_expected.to be_a(FiberedMysql2::FiberedMysql2Adapter) } }
+      it { in_concurrent_environment { is_expected.to be_a(AsyncMysql2::AsyncMysql2Adapter) } }
     end
   end
 
@@ -34,7 +34,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
     let(:logger) { Logger.new(STDOUT) }
     let(:options) { [] }
     let(:config) { {} }
-    let(:connection) { FiberedMysql2::FiberedMysql2Adapter.new(client, logger, options, config) }
+    let(:connection) { AsyncMysql2::AsyncMysql2Adapter.new(client, logger, options, config) }
 
     before do
       allow(client).to receive(:query_options) { {} }

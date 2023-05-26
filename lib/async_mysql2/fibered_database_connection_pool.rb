@@ -5,7 +5,7 @@
 # Note - trace statements have been commented out.  This is useful trace but we do not want it on by default.
 #        When we have configurable logging we can put this back and have it off by default.
 
-module FiberedMysql2
+module AsyncMysql2
   module FiberedDatabaseConnectionPool
     case ::Rails::VERSION::MAJOR
     when 6
@@ -86,4 +86,4 @@ module FiberedMysql2
   end
 end
 
-ActiveRecord::ConnectionAdapters::ConnectionPool.prepend(FiberedMysql2::FiberedDatabaseConnectionPool)
+ActiveRecord::ConnectionAdapters::ConnectionPool.prepend(AsyncMysql2::FiberedDatabaseConnectionPool)

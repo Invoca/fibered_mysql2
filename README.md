@@ -1,15 +1,15 @@
 [![Coverage Status](https://coveralls.io/repos/github/Invoca/fibered_mysql2/badge.svg?branch=master)](https://coveralls.io/github/Invoca/fibered_mysql2?branch=master)
 
-# FiberedMysql2
+# AsyncMysql2
 
-FiberedMysql2 adds `Async::Task` support to `ActiveRecord::ConnectionAdapters::Mysql2Adapter`
+AsyncMysql2 adds `Async::Task` support to `ActiveRecord::ConnectionAdapters::Mysql2Adapter`
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'fibered_mysql2'
+gem 'async_mysql2'
 ```
 
 And then execute:
@@ -27,7 +27,7 @@ Tested with Rails versions 6.0.
 
 Behaves the same as `ActiveRecord::ConnectionAdapters::Mysql2Adapter` but with added Async::Task safety while leasing/expiring connections.
 ```ruby
-connection = FiberedMysql2::FiberedMysql2Adapter.new(client, logger, options, config)
+connection = AsyncMysql2::AsyncMysql2Adapter.new(client, logger, options, config)
 connection.lease
 connection.expire
 ```

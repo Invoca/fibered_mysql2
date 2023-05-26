@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../../lib/active_record/connection_adapters/fibered_mysql2_adapter'
+require_relative '../../lib/active_record/connection_adapters/async_mysql2_adapter'
 
-RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
+RSpec.describe AsyncMysql2::AsyncMysql2Adapter do
   let(:client) { double(Mysql2::Client) }
   let(:logger) { Logger.new(STDOUT) }
   let(:options) { [] }
   let(:config) { {} }
-  let(:adapter) { FiberedMysql2::FiberedMysql2Adapter.new(client, logger, options, config) }
+  let(:adapter) { AsyncMysql2::AsyncMysql2Adapter.new(client, logger, options, config) }
 
   subject { adapter }
 
@@ -23,7 +23,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
     allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
   end
 
-  it { should be_instance_of(FiberedMysql2::FiberedMysql2Adapter) }
+  it { should be_instance_of(AsyncMysql2::AsyncMysql2Adapter) }
 
   context '#lease' do
     subject { adapter.lease }
@@ -92,7 +92,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
         it do
           in_concurrent_environment do
             ActiveRecord::Base.establish_connection(
-              adapter: 'fibered_mysql2',
+              adapter: 'async_mysql2',
               database: 'widgets',
               username: 'root',
               pool: 10
@@ -108,7 +108,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
         it 'by a different Async::Task' do
           in_concurrent_environment do
             ActiveRecord::Base.establish_connection(
-              adapter: 'fibered_mysql2',
+              adapter: 'async_mysql2',
               database: 'widgets',
               username: 'root',
               pool: 10

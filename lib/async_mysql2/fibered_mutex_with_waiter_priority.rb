@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module FiberedMysql2
+module AsyncMysql2
   module FiberedMutexWithWaiterPriority
     # Note: @waiters is a bit confusing because the first waiter is actually the current fiber that has it locked;
     # the _rest_ of @waiters are the actual waiters

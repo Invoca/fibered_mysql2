@@ -4,8 +4,8 @@ require 'active_model'
 require 'active_record/errors'
 require 'active_record/connection_adapters/mysql2_adapter'
 
-module FiberedMysql2
-  module FiberedMysql2Adapter_6
+module AsyncMysql2
+  module Adapter_6
     def lease
       if (ot = owner_task)
         msg = +"Cannot lease connection; "
@@ -60,10 +60,10 @@ module FiberedMysql2
     end
   end
 
-  class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
+  class AsyncMysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
     case ::Rails::VERSION::MAJOR
     when 6
-      include FiberedMysql2Adapter_6
+      include Adapter_6
     else
       raise ArgumentError, "unexpected Rails version #{Rails::VERSION::MAJOR}"
     end

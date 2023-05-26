@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../active_record/connection_adapters/fibered_mysql2_adapter'
+require_relative '../active_record/connection_adapters/async_mysql2_adapter'
 
-module FiberedMysql2
-  module FiberedMysql2ConnectionFactory
-    def fibered_mysql2_connection(raw_config)
+module AsyncMysql2
+  module ConnectionFactory
+    def async_mysql2_connection(raw_config)
       config = raw_config.symbolize_keys
 
       config[:username] = 'root' if config[:username].nil?
@@ -22,9 +22,9 @@ module FiberedMysql2
           end
 
       options = [config[:host], config[:username], config[:password], config[:database], config[:port], config[:socket], 0]
-      FiberedMysql2Adapter.new(client, logger, options, config)
+      AsyncMysql2Adapter.new(client, logger, options, config)
     end
   end
 end
 
-ActiveRecord::Base.class.prepend(FiberedMysql2::FiberedMysql2ConnectionFactory)
+ActiveRecord::Base.class.prepend(AsyncMysql2::ConnectionFactory)

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'fibered_mysql2/fibered_database_connection_pool'
+require 'async_mysql2/fibered_database_connection_pool'
 require 'monitor'
 
 class AsyncTaskHelper
@@ -21,21 +21,7 @@ class AsyncTaskHelper
   end
 end
 
-class TimerHelper
-  def initialize
-    @timers = []
-  end
-
-  def queue_timer(&block)
-    @timers << block
-  end
-
-  def cancel_timer(timer_block)
-    @timers.delete_if { |block| block == timer_block }
-  end
-end
-
-RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
+RSpec.describe AsyncMysql2::FiberedDatabaseConnectionPool do
   let(:async_task_helper) { AsyncTaskHelper.new }
 
   context "fiber-aware Monitor" do
@@ -280,8 +266,6 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
   end
 
   context ActiveRecord::ConnectionAdapters::ConnectionPool::Queue do
-    let(:timer_helper) { TimerHelper.new }
-
     let(:name) { 'primary' }
     let(:config) {{ database: 'rr_prod', host: 'master.ringrevenue.net' }}
     let(:adapter_method) { :mysql2 }
@@ -294,11 +278,6 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
 
     let(:connection) { double(Object, lease: true) }
     let(:polled) { [] }
-
-    # before do
-    #   allow(EM).to receive(:add_timer) { |&block| timer_helper.queue_timer(&block); block }
-    #   allow(EM).to receive(:cancel_timer) { |block| timer_helper.cancel_timer(block) }
-    # end
 
     context "poll" do
       it "should return added entries immediately" do
@@ -336,7 +315,7 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
     let(:pool_size) { 10 }
     let(:establish_connection) do
       ActiveRecord::Base.establish_connection(
-        :adapter => 'fibered_mysql2',
+        :adapter => 'async_mysql2',
         :database => 'widgets',
         :username => 'root',
         :pool => pool_size

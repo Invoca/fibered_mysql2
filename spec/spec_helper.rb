@@ -7,7 +7,7 @@ Coveralls.wear!
 require 'bundler/setup'
 require 'rails'
 require 'active_record'
-require 'fibered_mysql2'
+require 'async_mysql2'
 require "rspec/support/object_formatter"
 
 module AsyncHelper

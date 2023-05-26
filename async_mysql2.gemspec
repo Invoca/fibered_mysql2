@@ -2,15 +2,15 @@
 
 lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "fibered_mysql2/version"
+require "async_mysql2/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "fibered_mysql2"
-  spec.version       = FiberedMysql2::VERSION
+  spec.name          = "async_mysql2"
+  spec.version       = AsyncMysql2::VERSION
   spec.authors       = ["Invoca Development"]
   spec.email         = ["development@invoca.com"]
 
-  spec.summary       = "An adapter for fibered mysql2"
+  spec.summary       = "An adapter for mysql2 running on Async"
   spec.homepage      = "https://github.com/Invoca/fibered_mysql2"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'

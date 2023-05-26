@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    fibered_mysql2 (1.0.0.colin.1)
+    async_mysql2 (0.1.0.colin.1)
       async
       rails (>= 5.2, < 7)
 
@@ -195,8 +195,8 @@ PLATFORMS
 
 DEPENDENCIES
   appraisal
+  async_mysql2!
   coveralls
-  fibered_mysql2!
   mysql2 (~> 0.5)
   nokogiri (< 1.13)
   pry (~> 0.13)
