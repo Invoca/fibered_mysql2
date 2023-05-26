@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    async_mysql2 (0.1.0.colin.5)
+    async_mysql2 (0.1.0.colin.6)
       async
       rails (>= 5.2, < 7)
 
