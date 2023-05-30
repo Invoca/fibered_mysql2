@@ -30,115 +30,111 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
 
     it { in_concurrent_environment { should eq(Fiber.current) } }
 
-    if Rails::VERSION::MAJOR > 4
-      context 'if the connection is already being used' do
-        it 'by the current Fiber' do
-          in_concurrent_environment do
-            adapter.lease
-            expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot lease connection; it is already leased by the current Fiber.")
-          end
+    context 'if the connection is already being used' do
+      it 'by the current Fiber' do
+        in_concurrent_environment do
+          adapter.lease
+          expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot lease connection; it is already leased by the current Fiber.")
         end
+      end
 
-        it 'by another Fiber' do
-          in_concurrent_environment do
-            adapter.lease
-            new_task = Async do
-              expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot lease connection; it is already in use by a different Fiber:/)
-            end
-            new_task.wait
+      it 'by another Fiber' do
+        in_concurrent_environment do
+          adapter.lease
+          new_task = Async do
+            expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot lease connection; it is already in use by a different Fiber:/)
           end
+          new_task.wait
         end
       end
     end
   end
 
-  if Rails::VERSION::MAJOR > 4
-    context '#expire' do
-      subject { adapter.expire }
+  context '#expire' do
+    subject { adapter.expire }
 
-      context 'if the connection is not in use' do
-        it 'raises' do
-          in_concurrent_environment do
-            expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot expire connection; it is not currently leased.")
-          end
-        end
-      end
-
-      context 'if the connection is being used' do
-        it { in_concurrent_environment { adapter.lease; should be_nil } }
-
-        it 'by a different Fiber' do
-          in_concurrent_environment do
-            adapter.lease
-            new_task = Async do
-              expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot expire connection; it is owned by a different Fiber:/)
-            end
-            new_task.wait
-          end
+    context 'if the connection is not in use' do
+      it 'raises' do
+        in_concurrent_environment do
+          expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot expire connection; it is not currently leased.")
         end
       end
     end
 
-    context '#steal!' do
-      subject { adapter.steal! }
+    context 'if the connection is being used' do
+      it { in_concurrent_environment { adapter.lease; should be_nil } }
 
-      context 'if the connection is not in use' do
-        it 'raises' do
-          expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot steal connection; it is not currently leased.")
-        end
-      end
-
-      context 'if the connection is being used' do
-        it do
-          in_concurrent_environment do
-            ActiveRecord::Base.establish_connection(
-              adapter: 'fibered_mysql2',
-              database: 'widgets',
-              username: 'root',
-              pool: 10
-            )
-
-            adapter.pool = ActiveRecord::Base.connection_pool
-            adapter.lease
-
-            should be_nil
+      it 'by a different Fiber' do
+        in_concurrent_environment do
+          adapter.lease
+          new_task = Async do
+            expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot expire connection; it is owned by a different Fiber:/)
           end
-        end
-
-        it 'by a different Fiber' do
-          in_concurrent_environment do
-            ActiveRecord::Base.establish_connection(
-              adapter: 'fibered_mysql2',
-              database: 'widgets',
-              username: 'root',
-              pool: 10
-            )
-
-            adapter.pool = ActiveRecord::Base.connection_pool
-            adapter.lease
-
-            new_task_fiber = nil
-            new_task = Async { new_task_fiber = Fiber.current; subject }
-            new_task.wait
-
-            expect(adapter.owner).to eq(new_task_fiber)
-          end
+          new_task.wait
         end
       end
     end
+  end
 
-    context 'other mixins' do
-      it 'raises if @owner has been overwritten with a non-Fiber' do
-        adapter.instance_variable_set(:@owner, Thread.new { })
+  context '#steal!' do
+    subject { adapter.steal! }
 
-        expect { adapter.expire }.to raise_exception(RuntimeError, /@owner must be a Fiber!/i)
+    context 'if the connection is not in use' do
+      it 'raises' do
+        expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot steal connection; it is not currently leased.")
+      end
+    end
+
+    context 'if the connection is being used' do
+      it do
+        in_concurrent_environment do
+          ActiveRecord::Base.establish_connection(
+            adapter: 'fibered_mysql2',
+            database: 'widgets',
+            username: 'root',
+            pool: 10
+          )
+
+          adapter.pool = ActiveRecord::Base.connection_pool
+          adapter.lease
+
+          should be_nil
+        end
       end
 
-      it "doesn't raise if @owner is nil" do
-        adapter.instance_variable_set(:@owner, nil)
+      it 'by a different Fiber' do
+        in_concurrent_environment do
+          ActiveRecord::Base.establish_connection(
+            adapter: 'fibered_mysql2',
+            database: 'widgets',
+            username: 'root',
+            pool: 10
+          )
 
-        expect { adapter.send(:owner_fiber) }.to_not raise_exception
+          adapter.pool = ActiveRecord::Base.connection_pool
+          adapter.lease
+
+          new_task_fiber = nil
+          new_task = Async { new_task_fiber = Fiber.current; subject }
+          new_task.wait
+
+          expect(adapter.owner).to eq(new_task_fiber)
+        end
       end
+    end
+  end
+
+  context 'other mixins' do
+    it 'raises if @owner has been overwritten with a non-Fiber' do
+      adapter.instance_variable_set(:@owner, Thread.new { })
+
+      expect { adapter.expire }.to raise_exception(RuntimeError, /@owner must be a Fiber!/i)
+    end
+
+    it "doesn't raise if @owner is nil" do
+      adapter.instance_variable_set(:@owner, nil)
+
+      expect { adapter.send(:owner_fiber) }.to_not raise_exception
     end
   end
 end
