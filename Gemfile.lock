@@ -3,7 +3,7 @@ PATH
   specs:
     fibered_mysql2 (1.0.0.colin.2)
       async
-      rails (>= 5.2, < 7)
+      rails (>= 6, < 7)
 
 GEM
   remote: https://rubygems.org/
