@@ -32,14 +32,14 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
 
     if Rails::VERSION::MAJOR > 4
       context 'if the connection is already being used' do
-        it 'by the current Async::Task' do
+        it 'by the current Fiber' do
           in_concurrent_environment do
             adapter.lease
             expect { subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot lease connection; it is already leased by the current Fiber.")
           end
         end
 
-        it 'by another Async::Task' do
+        it 'by another Fiber' do
           in_concurrent_environment do
             adapter.lease
             new_task = Async do
@@ -67,7 +67,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
       context 'if the connection is being used' do
         it { in_concurrent_environment { adapter.lease; should be_nil } }
 
-        it 'by a different Async::Task' do
+        it 'by a different Fiber' do
           in_concurrent_environment do
             adapter.lease
             new_task = Async do
@@ -105,7 +105,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
           end
         end
 
-        it 'by a different Async::Task' do
+        it 'by a different Fiber' do
           in_concurrent_environment do
             ActiveRecord::Base.establish_connection(
               adapter: 'fibered_mysql2',
