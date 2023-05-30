@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
-# This class behaves the same as ActiveRecord's ConnectionPool, but synchronizes with Async::Task fibers rather than threads.
-
-# Note - trace statements have been commented out.  This is useful trace but we do not want it on by default.
-#        When we have configurable logging we can put this back and have it off by default.
+# This class behaves the same as ActiveRecord's ConnectionPool, but synchronizes with fibers rather than threads.
 
 module FiberedMysql2
   module FiberedDatabaseConnectionPool
@@ -30,8 +27,8 @@ module FiberedMysql2
       super
     end
 
-    def release_connection(owner_task = AsyncTask.current_or_none)
-      if (conn = @thread_cached_conns.delete(connection_cache_key(owner_task)))
+    def release_connection(owner = Fiber.current)
+      if (conn = @thread_cached_conns.delete(connection_cache_key(owner)))
         checkin(conn)
       end
     end
@@ -81,7 +78,7 @@ module FiberedMysql2
     end
 
     def current_thread
-      AsyncTask.current_or_none
+      Fiber.current
     end
   end
 end

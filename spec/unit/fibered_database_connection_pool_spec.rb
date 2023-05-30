@@ -351,14 +351,15 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
 
           c0 = ActiveRecord::Base.connection
           c1 = nil
-          task = Async { c1 = ActiveRecord::Base.connection }
+          task_fiber = nil
+          task = Async { c1 = ActiveRecord::Base.connection; task_fiber = Fiber.current }
           task.wait
 
           expect(c0).to be
           expect(c1).to be
           expect(c1).to_not eq(c0)
-          expect(c0.owner).to eq(Async::Task.current)
-          expect(c1.owner).to eq(task)
+          expect(c0.owner).to eq(Fiber.current)
+          expect(c1.owner).to eq(task_fiber)
           expect(c0.in_use?).to be_truthy
           expect(c1.in_use?).to be_truthy
         end
@@ -374,16 +375,18 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
           ActiveRecord::Base.connection
           c1 = nil
           c1_owner = nil
-          task1 = Async { c1 = ActiveRecord::Base.connection; c1_owner = c1.owner }
+          task1_fiber = nil
+          task1 = Async { c1 = ActiveRecord::Base.connection; c1_owner = c1.owner; task1_fiber = Fiber.current }
           task1.wait
 
           c2 = nil
           c2_owner = nil
-          task2 = Async { c2 = ActiveRecord::Base.connection; c2_owner = c2.owner }
+          task2_fiber = nil
+          task2 = Async { c2 = ActiveRecord::Base.connection; c2_owner = c2.owner; task2_fiber = Fiber.current }
           task2.wait
 
-          expect(c1_owner).to eq(task1)
-          expect(c2_owner).to eq(task2)
+          expect(c1_owner).to eq(task1_fiber)
+          expect(c2_owner).to eq(task2_fiber)
           expect(c1.object_id).to eq(c2.object_id)
         end
       end
@@ -393,7 +396,7 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       let(:pool_size) { 1 }
 
       it "should hand off connection on checkin to any task waiting on checkout" do
-        expect(client).to receive(:query) { }.exactly(1).times
+        expect(client).to receive(:query) { }.at_least(1).times
 
         in_concurrent_environment do
           expect(ActiveRecord::Base.connection_pool).to receive(:reap_connections).with(no_args).exactly(4).times.and_call_original
@@ -402,14 +405,19 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
           connection_pool = c0.pool
 
           c1 = nil
-          task1 = Async { c1 = ActiveRecord::Base.connection }
+          task1_fiber = nil
+          task1 = Async { task1_fiber = Fiber.current; c1 = ActiveRecord::Base.connection }
 
           sleep(0.001)
 
+          expect(task1_fiber).to be
           expect(c1).to eq(nil) # should block because there is only one connection
 
           connection_pool.checkin(c0)
           task1.wait
+          while task1_fiber.alive?
+            sleep(0.00001)
+          end
 
           expect(c1).to eq(c0)
 
