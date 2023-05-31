@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require "bundler/setup"
+require "active_record"
 require "fibered_mysql2"
 
 # You can add fixtures and/or initialization code here to make experimenting

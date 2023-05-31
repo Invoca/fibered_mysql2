@@ -6,13 +6,13 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
   let(:stub_mysql_client_result) { Struct.new(:fields, :to_a).new([], []) }
 
   describe "#fibered_mysql2_connection" do
-    let(:client) { double(Mysql2::EM::Client) }
+    let(:client) { double(Mysql2::Client) }
 
     context 'when fibered_mysql2 adapter is used' do
       subject { ActiveRecord::Base.connection }
 
       before do
-        expect(Mysql2::EM::Client).to receive(:new).and_return(client)
+        expect(Mysql2::Client).to receive(:new).and_return(client)
         allow(client).to receive(:query_options) { {} }
         allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
         allow(client).to receive(:ping) { true }
@@ -25,12 +25,12 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
         )
       end
 
-      it { is_expected.to be_a(FiberedMysql2::FiberedMysql2Adapter) }
+      it { in_concurrent_environment { is_expected.to be_a(FiberedMysql2::FiberedMysql2Adapter) } }
     end
   end
 
   describe "transactions" do
-    let(:client) { double(Mysql2::EM::Client) }
+    let(:client) { double(Mysql2::Client) }
     let(:logger) { Logger.new(STDOUT) }
     let(:options) { [] }
     let(:config) { {} }
@@ -45,21 +45,23 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
     end
 
     it "should work with basic nesting" do
-      expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
-      expect(client).to receive(:query).with("show tables").and_return(stub_mysql_client_result)
-      expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
+      in_concurrent_environment do
+        expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
+        expect(client).to receive(:query).with("show tables").and_return(stub_mysql_client_result)
+        expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
 
-      connection.transaction do
-        connection.exec_query("show tables")
+        connection.transaction do
+          connection.exec_query("show tables")
+        end
       end
     end
 
-    if Rails::VERSION::MAJOR >= 6
-      context "with an empty transaction" do
-        context "with lazy transactions disabled" do
-          before { connection.disable_lazy_transactions! }
+    context "with an empty transaction" do
+      context "with lazy transactions disabled" do
+        before { connection.disable_lazy_transactions! }
 
-          it "starts and commits a transaction even without any queries" do
+        it "starts and commits a transaction even without any queries" do
+          in_concurrent_environment do
             expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
             expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
 
@@ -68,11 +70,13 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
             end
           end
         end
+      end
 
-        context "with lazy transactions enabled" do
-          before { connection.enable_lazy_transactions! }
+      context "with lazy transactions enabled" do
+        before { connection.enable_lazy_transactions! }
 
-          it 'does not materialize a transaction without any queries' do
+        it 'does not materialize a transaction without any queries' do
+          in_concurrent_environment do
             expect(client).to_not receive(:query).with("BEGIN")
             expect(client).to_not receive(:query).with("COMMIT")
 
@@ -80,8 +84,10 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
               expect(connection.current_transaction.materialized?).to be_falsey
             end
           end
+        end
 
-          it 'materializes a transaction when the first query is performed' do
+        it 'materializes a transaction when the first query is performed' do
+          in_concurrent_environment do
             expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
             expect(client).to receive(:query).with("show tables").and_return(stub_mysql_client_result)
             expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
