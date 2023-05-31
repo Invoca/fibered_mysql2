@@ -56,48 +56,46 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
       end
     end
 
-    if Rails::VERSION::MAJOR >= 6
-      context "with an empty transaction" do
-        context "with lazy transactions disabled" do
-          before { connection.disable_lazy_transactions! }
+    context "with an empty transaction" do
+      context "with lazy transactions disabled" do
+        before { connection.disable_lazy_transactions! }
 
-          it "starts and commits a transaction even without any queries" do
-            in_concurrent_environment do
-              expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
-              expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
+        it "starts and commits a transaction even without any queries" do
+          in_concurrent_environment do
+            expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
+            expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
 
-              connection.transaction do
-                expect(connection.current_transaction.materialized?).to be_truthy
-              end
+            connection.transaction do
+              expect(connection.current_transaction.materialized?).to be_truthy
+            end
+          end
+        end
+      end
+
+      context "with lazy transactions enabled" do
+        before { connection.enable_lazy_transactions! }
+
+        it 'does not materialize a transaction without any queries' do
+          in_concurrent_environment do
+            expect(client).to_not receive(:query).with("BEGIN")
+            expect(client).to_not receive(:query).with("COMMIT")
+
+            connection.transaction do
+              expect(connection.current_transaction.materialized?).to be_falsey
             end
           end
         end
 
-        context "with lazy transactions enabled" do
-          before { connection.enable_lazy_transactions! }
+        it 'materializes a transaction when the first query is performed' do
+          in_concurrent_environment do
+            expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
+            expect(client).to receive(:query).with("show tables").and_return(stub_mysql_client_result)
+            expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
 
-          it 'does not materialize a transaction without any queries' do
-            in_concurrent_environment do
-              expect(client).to_not receive(:query).with("BEGIN")
-              expect(client).to_not receive(:query).with("COMMIT")
-
-              connection.transaction do
-                expect(connection.current_transaction.materialized?).to be_falsey
-              end
-            end
-          end
-
-          it 'materializes a transaction when the first query is performed' do
-            in_concurrent_environment do
-              expect(client).to receive(:query).with("BEGIN").and_return(stub_mysql_client_result)
-              expect(client).to receive(:query).with("show tables").and_return(stub_mysql_client_result)
-              expect(client).to receive(:query).with("COMMIT").and_return(stub_mysql_client_result)
-
-              connection.transaction do
-                expect(connection.current_transaction.materialized?).to be_falsey
-                connection.exec_query("show tables")
-                expect(connection.current_transaction.materialized?).to be_truthy
-              end
+            connection.transaction do
+              expect(connection.current_transaction.materialized?).to be_falsey
+              connection.exec_query("show tables")
+              expect(connection.current_transaction.materialized?).to be_truthy
             end
           end
         end

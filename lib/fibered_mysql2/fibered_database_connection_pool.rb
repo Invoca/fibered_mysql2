@@ -4,7 +4,7 @@
 
 module FiberedMysql2
   module FiberedDatabaseConnectionPool
-    ::Rails::VERSION::MAJOR == 6 or raise ArgumentError, "unexpected Rails version #{Rails::VERSION::MAJOR}"
+    ActiveRecord::VERSION::MAJOR == 6 or raise ArgumentError, "unexpected Rails version #{ActiveRecord::VERSION::MAJOR}"
 
     def cached_connections
       @thread_cached_conns
