@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: fibered_mysql2
+  annotations:
+    github.com/project-slug: Invoca/fibered_mysql2
+spec:
+  type: other
+  lifecycle: unknown
+  owner: octothorpe
