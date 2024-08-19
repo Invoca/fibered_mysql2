@@ -9,6 +9,6 @@ module FiberedMysql2
   end
 end
 
-if ActiveRecord.gem_version > "6.0"
+if ActiveRecord.gem_version >= "6.1"
   ActiveRecord::DatabaseConfigurations::HashConfig.prepend(FiberedMysql2::HashConfigOverride)
 end
