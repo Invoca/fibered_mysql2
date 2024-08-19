@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    fibered_mysql2 (1.0.0)
+    fibered_mysql2 (1.0.1)
       async
       rails (>= 6, < 7)
 
