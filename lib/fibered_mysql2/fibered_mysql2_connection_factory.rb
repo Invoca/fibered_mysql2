@@ -32,9 +32,9 @@ module EM::Synchrony
               run_commit_callbacks = !current_transaction.joinable?
               transaction =
                   if _current_stack.empty?
-                    ::ActiveRecord::ConnectionAdapters::RealTransaction.new(@connection, options, run_commit_callbacks: run_commit_callbacks)
+                    ::ActiveRecord::ConnectionAdapters::RealTransaction.new(@connection, **options, run_commit_callbacks: run_commit_callbacks)
                   else
-                    ::ActiveRecord::ConnectionAdapters::SavepointTransaction.new(@connection, "active_record_#{Fiber.current.object_id}_#{open_transactions}", _current_stack.last, options,
+                    ::ActiveRecord::ConnectionAdapters::SavepointTransaction.new(@connection, "active_record_#{Fiber.current.object_id}_#{open_transactions}", _current_stack.last, **options,
                                                                                  run_commit_callbacks: run_commit_callbacks)
                   end
 
