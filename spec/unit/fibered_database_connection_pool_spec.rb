@@ -317,7 +317,11 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       when 4
         ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(config, adapter_method)
       else
-        ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(name, config, adapter_method)
+        if ActiveRecord.gem_version < "6.1"
+          ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(name, config, adapter_method)
+        else
+          ActiveRecord::ConnectionAdapters::PoolConfig.new(name, ActiveRecord::DatabaseConfigurations::HashConfig.new("staging", "staging", config))
+        end
       end
     end
 
