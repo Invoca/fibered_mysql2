@@ -270,7 +270,11 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
     let(:config) {{ database: 'rr_prod', host: 'master.ringrevenue.net' }}
     let(:adapter_method) { :mysql2 }
     let(:spec) do
-      ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(name, config, adapter_method)
+      if ActiveRecord.gem_version < "6.1"
+        ActiveRecord::ConnectionAdapters::ConnectionSpecification.new(name, config, adapter_method)
+      else
+        ActiveRecord::ConnectionAdapters::PoolConfig.new(name, ActiveRecord::DatabaseConfigurations::HashConfig.new("staging", "staging", config))
+      end
     end
 
     let(:cp) { ActiveRecord::ConnectionAdapters::ConnectionPool.new(spec) }

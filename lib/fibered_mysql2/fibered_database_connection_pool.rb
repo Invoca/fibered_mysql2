@@ -30,8 +30,12 @@ module FiberedMysql2
     end
 
     def initialize(connection_spec, *args, **keyword_args)
-      connection_spec.config[:reaping_frequency] and raise "reaping_frequency is not supported (the ActiveRecord Reaper is thread-based)"
-      connection_spec.config[:reaping_frequency] = nil # starting in Rails 5, this defaults to 60 if not explicitly set
+      if ActiveRecord.gem_version < "6.1"
+        connection_spec.config[:reaping_frequency] and raise "reaping_frequency is not supported (the ActiveRecord Reaper is thread-based)"
+        connection_spec.config[:reaping_frequency] = nil # starting in Rails 5, this defaults to 60 if not explicitly set
+      elsif connection_spec.db_config.reaping_frequency
+        connection_spec.db_config.reaping_frequency > 0 and raise "reaping_frequency is not supported (the ActiveRecord Reaper is thread-based)"
+      end
 
       super(connection_spec, *args, **keyword_args)
 
