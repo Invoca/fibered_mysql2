@@ -2,8 +2,8 @@
 
 # FiberedMysql2
 
-FiberedMysql2 adds Fiber support to `ActiveRecord::ConnectionAdapters::Mysql2Adapter` for Rails 6.
-This is a stop-gap until Rails 7, which adds `isolation_level: :fiber` to `ActiveRecord`.
+FiberedMysql2 adds Fiber support to `ActiveRecord::ConnectionAdapters::Mysql2Adapter` for Rails versions < `7.1`.
+This is a stop-gap until Rails 7.1, which adds `isolation_level: :fiber` to `ActiveRecord` connection pooling.
 
 ## Installation
 
