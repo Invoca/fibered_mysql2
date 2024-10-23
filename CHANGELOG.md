@@ -4,9 +4,20 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - Unreleased
+### Added
+- Support for Rails 7.0.
+
+### Removed
+- Removed support for Rails 6.0 and Rails 5.
+
+### Changed
+- Clean up FiberedMysql2ConnectionFactory#fibered_mysql2_connection to better match Mysql2Adapter behavior.
+- Change FiberedMysql2::FiberedDatabaseConnectionPool#initialize to match ActiveRecord::ConnectionAdapters::ConnectionPool#initialize arguments.
+
 ## [0.2.1] - 2024-08-19
 ### Fixed
-- Fixed bugs in Rails 6.1.
+- Fixed bugs in Rails 6.1
 
 ## [0.2.0] - 2023-01-12
 ### Added

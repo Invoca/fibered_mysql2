@@ -6,16 +6,6 @@ require 'active_record/errors'
 require 'active_record/connection_adapters/em_mysql2_adapter'
 
 module FiberedMysql2
-  module FiberedMysql2Adapter_4_2
-    def lease
-      synchronize do
-        unless in_use?
-          @owner = Fiber.current
-        end
-      end
-    end
-  end
-
   module FiberedMysql2Adapter_5_2
     def lease
       if in_use?
@@ -72,11 +62,23 @@ module FiberedMysql2
   end
 
   class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::EMMysql2Adapter
-    case ::Rails::VERSION::MAJOR
-    when 4
-      include FiberedMysql2Adapter_4_2
-    when 5, 6
-      include FiberedMysql2Adapter_5_2
+    include FiberedMysql2Adapter_5_2
+
+    class << self
+      # Copied from Mysql2Adapter, except with the EM Mysql2 client
+      def new_client(config)
+        Mysql2::EM::Client.new(config)
+      rescue Mysql2::Error => error
+        if error.error_number == ConnectionAdapters::Mysql2Adapter::ER_BAD_DB_ERROR
+          raise ActiveRecord::NoDatabaseError.db_error(config[:database])
+        elsif error.error_number == ConnectionAdapters::Mysql2Adapter::ER_ACCESS_DENIED_ERROR
+          raise ActiveRecord::DatabaseConnectionError.username_error(config[:username])
+        elsif [ConnectionAdapters::Mysql2Adapter::ER_CONN_HOST_ERROR, ConnectionAdapters::Mysql2Adapter::ER_UNKNOWN_HOST_ERROR].include?(error.error_number)
+          raise ActiveRecord::DatabaseConnectionError.hostname_error(config[:host])
+        else
+          raise ActiveRecord::ConnectionNotEstablished, error.message
+        end
+      end
     end
 
     def initialize(*args)

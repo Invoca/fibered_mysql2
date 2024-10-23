@@ -186,25 +186,6 @@ module FiberedMysql2
   module FiberedDatabaseConnectionPool
     include FiberedMonitorMixin
 
-    module Adapter_4_2
-      def cached_connections
-        @reserved_connections
-      end
-
-      def current_connection_id
-        ActiveRecord::Base.connection_id ||= Fiber.current.object_id
-      end
-
-      def checkout
-        begin
-          reap_connections
-        rescue => ex
-          ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
-        end
-        super
-      end
-    end
-
     module Adapter_5_2
       def cached_connections
         @thread_cached_conns
@@ -229,27 +210,16 @@ module FiberedMysql2
         end
       end
     end
+    include Adapter_5_2
 
-    case Rails::VERSION::MAJOR
-    when 4
-      include Adapter_4_2
-    when 5, 6
-      include Adapter_5_2
-    end
-
-    def initialize(connection_spec, *args, **keyword_args)
-      if ActiveRecord.gem_version < "6.1"
-        connection_spec.config[:reaping_frequency] and raise "reaping_frequency is not supported (the ActiveRecord Reaper is thread-based)"
-        connection_spec.config[:reaping_frequency] = nil # starting in Rails 5, this defaults to 60 if not explicitly set
-      elsif connection_spec.db_config.reaping_frequency
-        connection_spec.db_config.reaping_frequency > 0 and raise "reaping_frequency is not supported (the ActiveRecord Reaper is thread-based)"
+    def initialize(pool_config)
+      if pool_config.db_config.reaping_frequency
+        pool_config.db_config.reaping_frequency > 0 and raise "reaping_frequency is not supported (the ActiveRecord Reaper is thread-based)"
       end
 
-      super(connection_spec, *args, **keyword_args)
+      super(pool_config)
 
       @reaper = nil # no need to keep a reference to this since it does nothing in this sub-class
-
-      # note that @reserved_connections is a ThreadSafe::Cache which is overkill in a fibered world, but harmless
     end
 
     def connection
