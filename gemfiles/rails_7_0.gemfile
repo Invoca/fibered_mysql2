@@ -11,6 +11,6 @@ gem "pry"
 gem "pry-byebug"
 gem "rake"
 gem "rspec"
-gem "rails", "~> 6.0.0"
+gem "rails", "~> 7.0.0"
 
 gemspec path: "../"

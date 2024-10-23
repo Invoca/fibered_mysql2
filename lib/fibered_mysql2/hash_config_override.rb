@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "active_record/database_configurations/hash_config"
+
 module FiberedMysql2
   module HashConfigOverride
     # Override the reaping_frequency method to return nil so that the connection pool does not reap connections when in fibered mode.
