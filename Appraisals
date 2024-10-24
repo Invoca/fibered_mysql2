@@ -2,4 +2,4 @@
 
 require "appraisal/matrix"
 
-appraisal_matrix(rails: "~> 6.0")
+appraisal_matrix(rails: [">= 6.0", "< 7.1"])

@@ -61,8 +61,6 @@ module FiberedMysql2
   end
 
   class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
-    ActiveRecord::VERSION::MAJOR == 6 or raise ArgumentError, "unexpected Rails version #{ActiveRecord::VERSION::MAJOR}"
-
     include FiberedMysql2Adapter_6
 
     def initialize(*args)
