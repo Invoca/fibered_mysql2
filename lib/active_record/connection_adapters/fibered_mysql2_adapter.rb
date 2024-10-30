@@ -3,6 +3,7 @@
 require 'em-synchrony'
 require 'active_model'
 require 'active_record/errors'
+require 'active_record/connection_adapters/mysql2_adapter'
 require 'active_record/connection_adapters/em_mysql2_adapter'
 
 module FiberedMysql2
@@ -69,11 +70,11 @@ module FiberedMysql2
       def new_client(config)
         Mysql2::EM::Client.new(config)
       rescue Mysql2::Error => error
-        if error.error_number == ConnectionAdapters::Mysql2Adapter::ER_BAD_DB_ERROR
+        if error.error_number == ActiveRecord::ConnectionAdapters::Mysql2Adapter::ER_BAD_DB_ERROR
           raise ActiveRecord::NoDatabaseError.db_error(config[:database])
-        elsif error.error_number == ConnectionAdapters::Mysql2Adapter::ER_ACCESS_DENIED_ERROR
+        elsif error.error_number == ActiveRecord::ConnectionAdapters::Mysql2Adapter::ER_ACCESS_DENIED_ERROR
           raise ActiveRecord::DatabaseConnectionError.username_error(config[:username])
-        elsif [ConnectionAdapters::Mysql2Adapter::ER_CONN_HOST_ERROR, ConnectionAdapters::Mysql2Adapter::ER_UNKNOWN_HOST_ERROR].include?(error.error_number)
+        elsif [ActiveRecord::ConnectionAdapters::Mysql2Adapter::ER_CONN_HOST_ERROR, ActiveRecord::ConnectionAdapters::Mysql2Adapter::ER_UNKNOWN_HOST_ERROR].include?(error.error_number)
           raise ActiveRecord::DatabaseConnectionError.hostname_error(config[:host])
         else
           raise ActiveRecord::ConnectionNotEstablished, error.message
