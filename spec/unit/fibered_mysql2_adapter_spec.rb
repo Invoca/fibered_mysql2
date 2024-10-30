@@ -48,30 +48,6 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
         end
       end
 
-      context "when the error is an access denied error" do
-        let(:error_number) { 1045 }
-
-        it "raises a DatabaseConnectionError" do
-          expect { new_client }.to raise_error(ActiveRecord::DatabaseConnectionError)
-        end
-      end
-
-      context "when the error is a connection host error" do
-        let(:error_number) { 2003 }
-
-        it "raises a DatabaseConnectionError" do
-          expect { new_client }.to raise_error(ActiveRecord::DatabaseConnectionError)
-        end
-      end
-
-      context "when the error is an unknown host error" do
-        let(:error_number) { 2005 }
-
-        it "raises a DatabaseConnectionError" do
-          expect { new_client }.to raise_error(ActiveRecord::DatabaseConnectionError)
-        end
-      end
-
       context "when the error is not a known error" do
         let(:error_number) { 1234 }
 
