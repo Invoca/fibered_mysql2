@@ -9,6 +9,9 @@ metadata:
   tags:
   - ruby
   - open-source
+  - gem
+  - rails-dependent
+  - public
 spec:
   type: library
   lifecycle: production
