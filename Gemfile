@@ -7,7 +7,9 @@ gemspec
 
 gem 'appraisal'
 gem 'appraisal-matrix'
+gem 'base64'
 gem 'coveralls', require: false
+gem 'mutex_m'
 gem 'mysql2',     '~> 0.5'
 gem 'nokogiri'
 gem 'pry'
