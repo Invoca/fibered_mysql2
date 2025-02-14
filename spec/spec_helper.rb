@@ -1,10 +1,10 @@
 # frozen_string_literal: true
-
 require 'coveralls'
 
 Coveralls.wear!
 
 require 'bundler/setup'
+require 'logger'
 require 'rails'
 require 'active_record'
 require 'fibered_mysql2'
