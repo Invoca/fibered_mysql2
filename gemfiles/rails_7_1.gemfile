@@ -10,7 +10,6 @@ gem "pry"
 gem "pry-byebug"
 gem "rake"
 gem "rspec"
-gem "simplecov"
 gem "rails", "~> 7.1.0"
 
 gemspec path: "../"
