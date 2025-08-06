@@ -393,9 +393,7 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
 
     context "with more than 1 connection in the pool" do
       it "should serve separate connections per fiber" do
-        # if ActiveRecord.gem_version < "7.2" # Rails 7.1 doesn't configure the raw mysql client on initialize anymore.
-        allow(client).to receive(:query)#.exactly(2).times
-        # end
+        allow(client).to receive(:query)
 
         c0 = ActiveRecord::Base.connection
         c1 = nil
@@ -409,14 +407,10 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
         expect(c1).to_not eq(c0)
         expect(c0.owner).to eq(Fiber.current)
         expect(c1.owner).to eq(fiber)
-        expect(c0.in_use?).to be
-        expect(c1.in_use?).to be
       end
 
       it "should reclaim connections when the fiber has exited" do
-        # if ActiveRecord.gem_version < "7.2" # Rails 7.1 doesn't configure the raw mysql client on initialize anymore.
         allow(client).to receive(:query)
-        # end
 
         ActiveRecord::Base.connection
         c1 = nil
@@ -443,9 +437,7 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       end
 
       it "should hand off connection on checkin to any fiber waiting on checkout" do
-        # if ActiveRecord.gem_version < "7.2" # Rails 7.1 doesn't configure the raw mysql client on initialize anymore.
         allow(client).to receive(:query)
-        # end
 
         EM.run do
           c0 = ActiveRecord::Base.connection

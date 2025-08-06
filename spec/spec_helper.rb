@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# require 'coveralls'
+require 'coveralls'
 
-# Coveralls.wear!
+Coveralls.wear!
 
 require 'bundler/setup'
 require 'logger'
