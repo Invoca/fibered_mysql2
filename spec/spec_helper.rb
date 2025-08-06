@@ -2,6 +2,7 @@
 
 require 'pry'
 require 'pry-byebug'
+require 'logger'
 require 'bundler/setup'
 require 'rails'
 require 'active_record'
