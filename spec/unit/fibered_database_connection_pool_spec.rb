@@ -379,7 +379,7 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       allow(client).to receive(:closed?) { false }
       allow(client).to receive(:info).and_return({ version: "5.7.27" })
       allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
-      allow(Mysql2::EM::Client).to receive(:new) { client }
+      allow(FiberedMysql2::FiberedMysql2Adapter).to receive(:new_client) { client }
 
       establish_connection
     end

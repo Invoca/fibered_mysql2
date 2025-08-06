@@ -12,7 +12,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
       subject { ActiveRecord::Base.connection }
 
       before do
-        expect(Mysql2::EM::Client).to receive(:new).and_return(client)
+        allow(FiberedMysql2::FiberedMysql2Adapter).to receive(:new_client).and_return(client)
         allow(client).to receive(:query_options) { {} }
         allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
         allow(client).to receive(:ping) { true }
