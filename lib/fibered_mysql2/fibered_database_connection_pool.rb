@@ -204,10 +204,6 @@ module FiberedMysql2
       def current_thread
         Fiber.current
       end
-
-      def connection
-        cached_connections[current_connection_id] ||= checkout
-      end
     end
 
     if ::ActiveRecord.gem_version < "7.1"
@@ -242,6 +238,23 @@ module FiberedMysql2
         ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
       end
       super
+    end
+
+    # Invoca patch to ensure that we are using the current fiber's connection.
+    def connection
+      # this is correctly done double-checked locking
+      # (ThreadSafe::Cache's lookups have volatile semantics)
+      if (result = cached_connections[current_connection_id])
+        result
+      else
+        synchronize do
+          if (result = cached_connections[current_connection_id])
+            result
+          else
+            cached_connections[current_connection_id] = checkout
+          end
+        end
+      end
     end
   end
 end
