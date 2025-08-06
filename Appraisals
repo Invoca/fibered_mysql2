@@ -6,5 +6,6 @@ appraisal_matrix(rails: [">= 7.0", "< 7.2"]) do |rails:|
   if rails < "7.1"
     gem "mutex_m"
     gem "base64"
+    gem "bigdecimal"
   end
 end
