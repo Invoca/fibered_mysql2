@@ -1,10 +1,7 @@
 # frozen_string_literal: true
 
-require 'coveralls'
-
-Coveralls.wear!
-
 require 'bundler/setup'
+require 'logger'
 require 'rails'
 require 'active_record'
 require 'fibered_mysql2'
@@ -23,5 +20,10 @@ RSpec.configure do |config|
 
   config.mock_with :rspec do |mocks|
     mocks.verify_partial_doubles = true
+  end
+
+  config.before(:all) do
+    ActiveSupport::IsolatedExecutionState.isolation_level = :fiber
+    ActiveRecord::Base.logger = Logger.new("/dev/null")
   end
 end

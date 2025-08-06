@@ -37,7 +37,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
 
     context "when the connection is unsuccessful" do
       before do
-        allow(Mysql2::EM::Client).to receive(:new).and_raise(Mysql2::Error.new("error", nil, error_number))
+        allow_any_instance_of(Mysql2::EM::Client).to receive(:connect).and_raise(Mysql2::Error.new("error", nil, error_number))
       end
 
       context "when the error is a bad database error" do
@@ -58,7 +58,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
     end
   end
 
-  context '#lease' do
+  context '#lease', if: ActiveRecord.gem_version < "7.1" do
     subject { adapter.lease }
 
     it { should eq(Fiber.current) }
@@ -77,7 +77,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
     end
   end
 
-  context '#expire' do
+  context '#expire', if: ActiveRecord.gem_version < "7.1" do
     subject { adapter.expire }
 
     context 'if the connection is not in use' do
@@ -131,7 +131,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
     end
   end
 
-  context 'other mixins' do
+  context 'other mixins', if: ActiveRecord.gem_version < "7.1" do
     it 'raises if @owner has been overwritten with a non-Fiber' do
       adapter.instance_variable_set(:@owner, Thread.new { })
 
