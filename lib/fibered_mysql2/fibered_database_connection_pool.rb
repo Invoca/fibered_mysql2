@@ -206,7 +206,9 @@ module FiberedMysql2
         Fiber.current
       end
     end
-    include Adapter_7_0 if ::ActiveRecord.gem_version < "7.1"
+    if ::ActiveRecord.gem_version < "7.1"
+      include Adapter_7_0
+    end
     include FiberedMonitorMixin # This is switches the connection pool's mutex and condition variables to event machine / Fiber compatible ones.
 
     def initialize(pool_config)
@@ -227,7 +229,8 @@ module FiberedMysql2
       @thread_cached_conns
     end
 
-    # Invoca patch that reaps orphaned connections on checkout. This reduces the number of connections left open by dead fibers.
+    # Invoca patch that reaps orphaned connections on checkout. This lets us immediately use a connection left open by dead fibers
+    # instead of waiting for all connections to be used in the pool before they are reaped.
     def checkout(checkout_timeout = @checkout_timeout)
       begin
         reap

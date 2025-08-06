@@ -6,11 +6,9 @@ require 'active_record/errors'
 
 require 'active_record/connection_adapters/mysql2_adapter'
 require 'em-synchrony/mysql2'
-require 'em-synchrony/activerecord'
-# require 'active_record/connection_adapters/em_mysql2_adapter'
 
 module FiberedMysql2
-  module FiberedMysql2Adapter_5_2
+  module FiberedMysql2Adapter_7_0
     def lease
       if in_use?
         msg = "Cannot lease connection, ".dup
@@ -66,11 +64,8 @@ module FiberedMysql2
   end
 
   class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
-
     if ::ActiveRecord.gem_version < "7.1"
-      require 'em-synchrony/activerecord_4_2'
-      include EM::Synchrony::ActiveRecord::Adapter_4_2
-      include FiberedMysql2Adapter_5_2
+      include FiberedMysql2Adapter_7_0
     end
 
     class << self
@@ -85,9 +80,5 @@ module FiberedMysql2
         end
       end
     end
-
-    # def initialize(*args)
-    #   super
-    # end
   end
 end
