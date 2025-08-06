@@ -374,6 +374,7 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       allow(client).to receive(:query_options) { {} }
       allow(client).to receive(:escape) { |query| query }
       allow(client).to receive(:ping) { true }
+      allow(client).to receive(:query)
       allow(client).to receive(:close)
       allow(client).to receive(:closed?) { false }
       allow(client).to receive(:info).and_return({ version: "5.7.27" })
@@ -393,8 +394,6 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
 
     context "with more than 1 connection in the pool" do
       it "should serve separate connections per fiber" do
-        allow(client).to receive(:query)
-
         c0 = ActiveRecord::Base.connection
         c1 = nil
         fiber = Fiber.new do
@@ -410,8 +409,6 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       end
 
       it "should reclaim connections when the fiber has exited" do
-        allow(client).to receive(:query)
-
         ActiveRecord::Base.connection
         c1 = nil
         fiber1 = Fiber.new { c1 = ActiveRecord::Base.connection.tap(&:verify!) } # Force configuring the raw mysql client.
@@ -437,8 +434,6 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       end
 
       it "should hand off connection on checkin to any fiber waiting on checkout" do
-        allow(client).to receive(:query)
-
         EM.run do
           c0 = ActiveRecord::Base.connection
           connection_pool = c0.pool
