@@ -28,5 +28,6 @@ RSpec.configure do |config|
 
   config.before(:all) do
     ActiveSupport::IsolatedExecutionState.isolation_level = :fiber
+    ActiveRecord::Base.logger = Logger.new("/dev/null")
   end
 end

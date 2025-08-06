@@ -58,7 +58,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
     end
   end
 
-  context '#lease' do
+  context '#lease', if: ActiveRecord.gem_version < "7.1" do
     subject { adapter.lease }
 
     it { should eq(Fiber.current) }
@@ -77,7 +77,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
     end
   end
 
-  context '#expire' do
+  context '#expire', if: ActiveRecord.gem_version < "7.1" do
     subject { adapter.expire }
 
     context 'if the connection is not in use' do
@@ -131,7 +131,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
     end
   end
 
-  context 'other mixins' do
+  context 'other mixins', if: ActiveRecord.gem_version < "7.1" do
     it 'raises if @owner has been overwritten with a non-Fiber' do
       adapter.instance_variable_set(:@owner, Thread.new { })
 

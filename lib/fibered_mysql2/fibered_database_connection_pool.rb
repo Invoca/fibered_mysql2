@@ -230,20 +230,11 @@ module FiberedMysql2
     # Invoca patch that reaps orphaned connections on checkout. This reduces the number of connections left open by dead fibers.
     def checkout(checkout_timeout = @checkout_timeout)
       begin
-        reap_connections
+        reap
       rescue => ex
         ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
       end
       super
-    end
-
-    # Invoca specific helper method to reap connections on checkout
-    def reap_connections
-      cached_connections.values.each do |connection|
-        unless connection.owner.alive?
-          checkin(connection)
-        end
-      end
     end
 
     # Overrides EM::Synchrony connection method.

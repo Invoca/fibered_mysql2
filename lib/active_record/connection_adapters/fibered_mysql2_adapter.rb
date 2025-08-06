@@ -66,9 +66,12 @@ module FiberedMysql2
   end
 
   class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
-    require 'em-synchrony/activerecord_4_2'
-    include EM::Synchrony::ActiveRecord::Adapter_4_2
-    include FiberedMysql2Adapter_5_2
+
+    if ::ActiveRecord.gem_version < "7.1"
+      require 'em-synchrony/activerecord_4_2'
+      include EM::Synchrony::ActiveRecord::Adapter_4_2
+      include FiberedMysql2Adapter_5_2
+    end
 
     class << self
       # Copied from Mysql2Adapter, except with the EM Mysql2 client
@@ -83,8 +86,8 @@ module FiberedMysql2
       end
     end
 
-    def initialize(*args)
-      super
-    end
+    # def initialize(*args)
+    #   super
+    # end
   end
 end
