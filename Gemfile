@@ -12,4 +12,4 @@ gem 'nokogiri'
 gem 'pry'
 gem 'pry-byebug'
 gem 'rake'
-gem 'rspec', '~> 3.12.0'
+gem 'rspec', '~> 3.12.0' # Rspec 3.13 is causing segfaults for some reason in CI...
