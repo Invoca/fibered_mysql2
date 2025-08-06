@@ -4,7 +4,7 @@ require 'em-synchrony'
 require 'active_model'
 require 'active_record/errors'
 require 'active_record/connection_adapters/mysql2_adapter'
-require 'active_record/connection_adapters/em_mysql2_adapter'
+require 'em-synchrony/mysql2'
 
 module FiberedMysql2
   module FiberedMysql2Adapter_5_2
@@ -62,8 +62,9 @@ module FiberedMysql2
     end
   end
 
-  class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::EMMysql2Adapter
+  class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
     include FiberedMysql2Adapter_5_2
+    include FiberedMysql2::TransactionManagerOverride
 
     class << self
       # Copied from Mysql2Adapter, except with the EM Mysql2 client

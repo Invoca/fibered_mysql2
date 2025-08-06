@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
-require 'coveralls'
-
-Coveralls.wear!
-
+require 'pry'
+require 'pry-byebug'
 require 'bundler/setup'
 require 'rails'
 require 'active_record'

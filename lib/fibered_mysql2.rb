@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'fibered_mysql2/version'
+require 'fibered_mysql2/transaction_manager_override'
 require_relative '../lib/active_record/connection_adapters/fibered_mysql2_adapter'
 require 'fibered_mysql2/fibered_database_connection_pool'
 require 'fibered_mysql2/fibered_mutex_with_waiter_priority'

@@ -248,13 +248,6 @@ module FiberedMysql2
 
     private
 
-    #--
-    # This hook-in method allows for easier monkey-patching fixes needed by
-    # JRuby users that use Fibers.
-    def connection_cache_key(fiber)
-      fiber
-    end
-
     def current_thread
       Fiber.current
     end
