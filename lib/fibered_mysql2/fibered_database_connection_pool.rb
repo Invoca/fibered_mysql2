@@ -201,11 +201,15 @@ module FiberedMysql2
         release_connection if fresh_connection
       end
 
-      # Not needed in Rails 7.1 and later
       def current_thread
         Fiber.current
       end
+
+      def connection
+        cached_connections[current_connection_id] ||= checkout
+      end
     end
+
     if ::ActiveRecord.gem_version < "7.1"
       include Adapter_7_0
     end
@@ -238,11 +242,6 @@ module FiberedMysql2
         ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
       end
       super
-    end
-
-    # Overrides EM::Synchrony connection method.
-    def connection
-      cached_connections[current_connection_id] ||= checkout
     end
   end
 end
