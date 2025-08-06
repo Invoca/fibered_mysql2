@@ -37,7 +37,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
 
     context "when the connection is unsuccessful" do
       before do
-        allow_any_instance_of(Mysql2::EM::Client).to receive(:initialize).and_raise(Mysql2::Error.new("error", nil, error_number))
+        allow_any_instance_of(Mysql2::EM::Client).to receive(:connect).and_raise(Mysql2::Error.new("error", nil, error_number))
       end
 
       context "when the error is a bad database error" do
