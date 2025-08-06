@@ -5,6 +5,7 @@
 # Coveralls.wear!
 
 require 'bundler/setup'
+require 'logger'
 require 'rails'
 require 'active_record'
 require 'fibered_mysql2'
