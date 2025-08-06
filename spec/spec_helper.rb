@@ -2,7 +2,7 @@
 
 require 'coveralls'
 
-Coveralls.wear!
+Coveralls.wear!(:rails)
 
 require 'bundler/setup'
 require 'logger'

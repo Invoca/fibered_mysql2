@@ -7,7 +7,7 @@ gemspec
 
 gem 'appraisal'
 gem 'appraisal-matrix'
-gem 'coveralls', require: false
+gem 'coveralls_reborn', require: false
 gem 'mysql2',     '~> 0.5'
 gem 'nokogiri'
 gem 'pry'
