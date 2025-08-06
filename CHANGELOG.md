@@ -4,6 +4,23 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - Unreleased
+### Added
+- Support for Rails 7.1
+
+### Removed
+- Removed support for Rails 6.1 and below.
+
+### Changed
+#### FiberedMysql2Adapter
+- Updated to no longer include EM::Synchrony::ActiveRecord::Adapter_4_2 as it is no longer necessary.
+- Removed TransactionManager overrides as they are no longer necessary.
+
+#### FiberedMysql2::FiberedDatabaseConnectionPool
+- Updated to only override methods needed in Rails 7.0.
+- Removed double-checking in #connection for cached connection.
+- Updated #checkout patch to use #reap instead of our custom #reaped_connections method.
+
 ## [0.3.1] - 2024-10-30
 ### Fixed
 - Fixed bug in FiberedMysqlAdapter.new_client that was causing `uninitialized constant` errors.
