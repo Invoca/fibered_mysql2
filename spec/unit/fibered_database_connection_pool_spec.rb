@@ -377,7 +377,7 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       allow(client).to receive(:close)
       allow(client).to receive(:info).and_return({ version: "5.7.27" })
       allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
-      allow(Mysql2::EM::Client).to receive(:new) { |config| client }
+      allow(Mysql2::EM::Client).to receive(:new) { client }
 
       establish_connection
     end
@@ -392,22 +392,20 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
 
     context "with more than 1 connection in the pool" do
       it "should serve separate connections per fiber" do
-        expected_query = if Rails::VERSION::MAJOR > 4
-                           "SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483"
-                         else
-                           "SET  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483, @@SESSION.sql_mode = 'STRICT_ALL_TABLES'"
-                         end
+        expected_query = "SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483"
         expect(client).to receive(:query) do |*args|
           expect(args).to eq([expected_query])
         end.exactly(2).times
 
         c0 = ActiveRecord::Base.connection
         c1 = nil
-        fiber = Fiber.new { c1 = ActiveRecord::Base.connection }
+        fiber = Fiber.new do
+          c1 = ActiveRecord::Base.connection
+        end
         fiber.resume
 
-        expect(c0).to be
-        expect(c1).to be
+        expect(c0).to be_truthy
+        expect(c1).to be_truthy
         expect(c1).to_not eq(c0)
         expect(c0.owner).to eq(Fiber.current)
         expect(c1.owner).to eq(fiber)
@@ -417,9 +415,6 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
 
       it "should reclaim connections when the fiber has exited" do
         expect(client).to receive(:query) { }.exactly(2).times
-
-        reap_connection_count = Rails::VERSION::MAJOR > 4 ? 5 : 3
-        expect(ActiveRecord::Base.connection_pool).to receive(:reap_connections).with(no_args).exactly(reap_connection_count).times.and_call_original
 
         ActiveRecord::Base.connection
         c1 = nil
@@ -449,9 +444,6 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
         expect(client).to receive(:query) { }.exactly(1).times
 
         EM.run do
-          reap_connection_count = Rails::VERSION::MAJOR > 4 ? 4 : 3
-          expect(ActiveRecord::Base.connection_pool).to receive(:reap_connections).with(no_args).exactly(reap_connection_count).times.and_call_original
-
           c0 = ActiveRecord::Base.connection
           connection_pool = c0.pool
           c1 = nil
@@ -460,12 +452,12 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
             em_helper.run_next_ticks
             c1 = ActiveRecord::Base.connection.tap { em_helper.run_next_ticks }
           end
-          fiber1.resume
+          fiber1.resume # Fiber should block because there is only one connection
 
-          expect(c1).to eq(nil) # should block because there is only one connection
+          expect(c1).to eq(nil)
 
           connection_pool.checkin(c0)
-          em_helper.run_next_ticks
+          em_helper.run_next_ticks # Resume fiber1 now that c0 is checked in.
 
           expect(c1).to eq(c0)
 

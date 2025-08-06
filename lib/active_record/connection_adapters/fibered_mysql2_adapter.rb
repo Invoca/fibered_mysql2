@@ -3,8 +3,11 @@
 require 'em-synchrony'
 require 'active_model'
 require 'active_record/errors'
+
 require 'active_record/connection_adapters/mysql2_adapter'
-require 'active_record/connection_adapters/em_mysql2_adapter'
+require 'em-synchrony/mysql2'
+require 'em-synchrony/activerecord'
+# require 'active_record/connection_adapters/em_mysql2_adapter'
 
 module FiberedMysql2
   module FiberedMysql2Adapter_5_2
@@ -62,7 +65,9 @@ module FiberedMysql2
     end
   end
 
-  class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::EMMysql2Adapter
+  class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
+    require 'em-synchrony/activerecord_4_2'
+    include EM::Synchrony::ActiveRecord::Adapter_4_2
     include FiberedMysql2Adapter_5_2
 
     class << self

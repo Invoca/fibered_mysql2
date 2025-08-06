@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'coveralls'
+# require 'coveralls'
 
-Coveralls.wear!
+# Coveralls.wear!
 
 require 'bundler/setup'
 require 'rails'
@@ -23,5 +23,9 @@ RSpec.configure do |config|
 
   config.mock_with :rspec do |mocks|
     mocks.verify_partial_doubles = true
+  end
+
+  config.before(:all) do
+    ActiveSupport::IsolatedExecutionState.isolation_level = :fiber
   end
 end

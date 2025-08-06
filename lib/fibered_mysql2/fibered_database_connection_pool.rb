@@ -184,33 +184,30 @@ module FiberedMysql2
   end
 
   module FiberedDatabaseConnectionPool
-    include FiberedMonitorMixin
-
-    module Adapter_5_2
-      def cached_connections
-        @thread_cached_conns
-      end
-
-      def current_connection_id
-        connection_cache_key(current_thread)
-      end
-
-      def checkout(checkout_timeout = @checkout_timeout)
-        begin
-          reap_connections
-        rescue => ex
-          ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
-        end
-        super
-      end
-
+    module Adapter_7_0
       def release_connection(owner_thread = Fiber.current)
         if (conn = @thread_cached_conns.delete(connection_cache_key(owner_thread)))
           checkin(conn)
         end
       end
+
+      def with_connection
+        unless (conn = cached_connections[current_connection_id]) # Invoca Patch to use Fiber
+          conn = connection
+          fresh_connection = true
+        end
+        yield conn
+      ensure
+        release_connection if fresh_connection
+      end
+
+      # Not needed in Rails 7.1 and later
+      def current_thread
+        Fiber.current
+      end
     end
-    include Adapter_5_2
+    include Adapter_7_0 if ::ActiveRecord.gem_version < "7.1"
+    include FiberedMonitorMixin # This is switches the connection pool's mutex and condition variables to event machine / Fiber compatible ones.
 
     def initialize(pool_config)
       if pool_config.db_config.reaping_frequency
@@ -222,22 +219,25 @@ module FiberedMysql2
       @reaper = nil # no need to keep a reference to this since it does nothing in this sub-class
     end
 
-    def connection
-      # this is correctly done double-checked locking
-      # (ThreadSafe::Cache's lookups have volatile semantics)
-      if (result = cached_connections[current_connection_id])
-        result
-      else
-        synchronize do
-          if (result = cached_connections[current_connection_id])
-            result
-          else
-            cached_connections[current_connection_id] = checkout
-          end
-        end
-      end
+    def current_connection_id
+      connection_cache_key(current_thread)
     end
 
+    def cached_connections
+      @thread_cached_conns
+    end
+
+    # Invoca patch that reaps orphaned connections on checkout. This reduces the number of connections left open by dead fibers.
+    def checkout(checkout_timeout = @checkout_timeout)
+      begin
+        reap_connections
+      rescue => ex
+        ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
+      end
+      super
+    end
+
+    # Invoca specific helper method to reap connections on checkout
     def reap_connections
       cached_connections.values.each do |connection|
         unless connection.owner.alive?
@@ -246,17 +246,9 @@ module FiberedMysql2
       end
     end
 
-    private
-
-    #--
-    # This hook-in method allows for easier monkey-patching fixes needed by
-    # JRuby users that use Fibers.
-    def connection_cache_key(fiber)
-      fiber
-    end
-
-    def current_thread
-      Fiber.current
+    # Overrides EM::Synchrony connection method.
+    def connection
+      cached_connections[current_connection_id] ||= checkout
     end
   end
 end
