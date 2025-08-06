@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-require 'coveralls'
-
-Coveralls.wear!(:rails)
+require 'simplecov'
+SimpleCov.start
 
 require 'bundler/setup'
 require 'logger'
