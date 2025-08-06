@@ -440,6 +440,7 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
           c1 = nil
 
           fiber1 = Fiber.new do
+            em_helper.run_next_ticks
             c1 = ActiveRecord::Base.connection.tap { em_helper.run_next_ticks }
           end
           fiber1.resume # Fiber should yield back immediately because the connection pool has no connections available.
