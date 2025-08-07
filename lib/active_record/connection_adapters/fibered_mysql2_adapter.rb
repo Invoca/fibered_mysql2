@@ -64,7 +64,6 @@ module FiberedMysql2
 
   class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
     include FiberedMysql2Adapter_5_2
-    include FiberedMysql2::TransactionManagerOverride
 
     class << self
       # Copied from Mysql2Adapter, except with the EM Mysql2 client

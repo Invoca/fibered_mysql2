@@ -186,31 +186,30 @@ module FiberedMysql2
   module FiberedDatabaseConnectionPool
     include FiberedMonitorMixin
 
-    module Adapter_5_2
-      def cached_connections
-        @thread_cached_conns
-      end
-
-      def current_connection_id
-        connection_cache_key(current_thread)
-      end
-
-      def checkout(checkout_timeout = @checkout_timeout)
-        begin
-          reap_connections
-        rescue => ex
-          ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
-        end
-        super
-      end
-
+    module Adapter_7_0
       def release_connection(owner_thread = Fiber.current)
         if (conn = @thread_cached_conns.delete(connection_cache_key(owner_thread)))
           checkin(conn)
         end
       end
+
+      def with_connection
+        unless (conn = cached_connections[current_connection_id])
+          conn = connection
+          fresh_connection = true
+        end
+        yield conn
+      ensure
+        release_connection if fresh_connection
+      end
+
+      private
+
+      def current_thread
+        Fiber.current
+      end
     end
-    include Adapter_5_2
+    include Adapter_7_0 if ActiveRecord.gem_version < "7.1"
 
     def initialize(pool_config)
       if pool_config.db_config.reaping_frequency
@@ -238,18 +237,29 @@ module FiberedMysql2
       end
     end
 
+    def checkout(checkout_timeout = @checkout_timeout)
+      begin
+        reap_connections
+      rescue => ex
+        ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
+      end
+      super
+    end
+
+    def cached_connections
+      @thread_cached_conns
+    end
+
+    def current_connection_id
+      connection_cache_key(current_thread)
+    end
+
     def reap_connections
       cached_connections.values.each do |connection|
         unless connection.owner.alive?
           checkin(connection)
         end
       end
-    end
-
-    private
-
-    def current_thread
-      Fiber.current
     end
   end
 end
