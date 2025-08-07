@@ -1,6 +1,6 @@
 ---
 name: FiberedMySQL2 Gem Build
-on: [push, pull_request]
+on: [push]
 jobs:
   test:
     name: Unit Tests
