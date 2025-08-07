@@ -92,8 +92,8 @@ module FiberedMysql2
       end
     end
 
-    def reset_transaction #:nodoc:
-      @transaction_manager = ::FiberedMysql2::TransactionManagerOverride::TransactionManager.new(self)
-    end
+    # def reset_transaction #:nodoc:
+    #   @transaction_manager = ::FiberedMysql2::TransactionManagerOverride::TransactionManager.new(self)
+    # end
   end
 end
