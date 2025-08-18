@@ -16,6 +16,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
         allow(client).to receive(:query_options) { {} }
         allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
         allow(client).to receive(:ping) { true }
+        allow(client).to receive(:closed?) { false }
         allow(client).to receive(:query).and_return(stub_mysql_client_result)
         ActiveRecord::Base.establish_connection(
           :adapter => 'fibered_mysql2',
@@ -40,6 +41,8 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
       allow(client).to receive(:query_options) { {} }
       allow(client).to receive(:escape) { |query| query }
       allow(client).to receive(:ping) { true }
+      allow(client).to receive(:close)
+      allow(client).to receive(:closed?) { false }
       allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
       allow(client).to receive(:query).and_return(stub_mysql_client_result)
     end
