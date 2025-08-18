@@ -209,7 +209,9 @@ module FiberedMysql2
         Fiber.current
       end
     end
-    include Adapter_7_0 if ActiveRecord.gem_version < "7.1"
+    if ActiveRecord.gem_version < "7.1"
+      include Adapter_7_0
+    end
 
     def initialize(pool_config)
       if pool_config.db_config.reaping_frequency

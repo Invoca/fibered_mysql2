@@ -7,7 +7,7 @@ require 'active_record/connection_adapters/mysql2_adapter'
 require 'em-synchrony/mysql2'
 
 module FiberedMysql2
-  module FiberedMysql2Adapter_5_2
+  module FiberedMysql2Adapter_7_0
     def lease
       if in_use?
         msg = "Cannot lease connection, ".dup
@@ -62,8 +62,32 @@ module FiberedMysql2
     end
   end
 
+  module FiberedMysql2Adapter_7_1
+    def expire
+      if in_use?
+        # Because we are actively releasing connections from dead fibers, we only want
+        # to enforce that we're expiring the current fibers connection, iff the owner
+        # of the connection is still alive.
+        if @owner.alive? && @owner != ActiveSupport::IsolatedExecutionState.context
+          raise ::ActiveRecord::ActiveRecordError, "Cannot expire connection, " \
+            "it is owned by a different fiber: #{@owner}. " \
+            "Current fiber: #{ActiveSupport::IsolatedExecutionState.context}."
+        end
+
+        @idle_since = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        @owner = nil
+      else
+        raise ::ActiveRecord::ActiveRecordError, "Cannot expire connection, it is not currently leased."
+      end
+    end
+  end
+
   class FiberedMysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
-    include FiberedMysql2Adapter_5_2
+    if Rails.gem_version < "7.1"
+      include FiberedMysql2Adapter_7_0
+    else
+      include FiberedMysql2Adapter_7_1
+    end
 
     class << self
       # Copied from Mysql2Adapter, except with the EM Mysql2 client
