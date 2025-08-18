@@ -77,5 +77,9 @@ module FiberedMysql2
         end
       end
     end
+
+    def initialize(*args)
+      super
+    end
   end
 end
