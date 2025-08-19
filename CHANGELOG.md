@@ -4,6 +4,14 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - Unreleased
+### Added
+- Support for Rails 7.1.
+
+### Removed
+- Removed support for Rails 6.
+- Removed usage of EventMachine::Synchrony ActiveRecord Mysql adapter. This adapter code was extremely old and we were overriding their patches back to the current ActiveRecord version.
+
 ## [0.3.1] - 2024-10-30
 ### Fixed
 - Fixed bug in FiberedMysqlAdapter.new_client that was causing `uninitialized constant` errors.
