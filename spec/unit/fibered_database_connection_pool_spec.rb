@@ -394,15 +394,6 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
 
     context "with more than 1 connection in the pool" do
       it "should serve separate connections per fiber" do
-        # expected_query = if Rails.gem_version < "7.1"
-        #                    "SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483"
-        #                  else
-        #                    "SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),  @@SESSION.wait_timeout = 2147483"
-        #                  end
-        # expect(client).to receive(:query) do |*args|
-        #   expect(args).to eq([expected_query])
-        # end.at_least(:once)
-
         c0 = ActiveRecord::Base.connection
         c1 = nil
         fiber = Fiber.new { c1 = ActiveRecord::Base.connection }
