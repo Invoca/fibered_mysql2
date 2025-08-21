@@ -5,6 +5,12 @@
 FiberedMysql2 adds Fiber support to `ActiveRecord::ConnectionAdapters::Mysql2Adapter` for Rails versions < `7.1`.
 This is a stop-gap until Rails 7.1, which adds `isolation_level: :fiber` to `ActiveRecord` connection pooling.
 
+We have split the fibered_mysql2 gem into two separate branches.
+1. The `master` branch supports fibers via Async before Rails 7.1.
+2. The `v0.x-master` branch supports fibers via EventMachine+Synchrony for all Rails versions.
+
+Use https://github.com/Invoca/fibered_mysql2/tree/v0.x-master as the master branch if working on supporting EventMachine.
+
 ## Installation
 
 Add this line to your application's Gemfile:
