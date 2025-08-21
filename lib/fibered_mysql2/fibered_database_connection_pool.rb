@@ -186,31 +186,33 @@ module FiberedMysql2
   module FiberedDatabaseConnectionPool
     include FiberedMonitorMixin
 
-    module Adapter_5_2
-      def cached_connections
-        @thread_cached_conns
-      end
-
-      def current_connection_id
-        connection_cache_key(current_thread)
-      end
-
-      def checkout(checkout_timeout = @checkout_timeout)
-        begin
-          reap_connections
-        rescue => ex
-          ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
-        end
-        super
-      end
-
+    # Methods that only need to be made Fiber safe in Rails 7.0. Rails 7.1 properly supports Fibers for these methods.
+    module Adapter_7_0
       def release_connection(owner_thread = Fiber.current)
         if (conn = @thread_cached_conns.delete(connection_cache_key(owner_thread)))
           checkin(conn)
         end
       end
+
+      def with_connection
+        unless (conn = cached_connections[current_connection_id])
+          conn = connection
+          fresh_connection = true
+        end
+        yield conn
+      ensure
+        release_connection if fresh_connection
+      end
+
+      private
+
+      def current_thread
+        Fiber.current
+      end
     end
-    include Adapter_5_2
+    if ActiveRecord.gem_version < "7.1"
+      include Adapter_7_0
+    end
 
     def initialize(pool_config)
       if pool_config.db_config.reaping_frequency
@@ -238,6 +240,21 @@ module FiberedMysql2
       end
     end
 
+    # Invoca Patch - Reap connections so we re-use any orphaned connections instead of creating a new connection.
+    # This has been useful in Ringswitch where we have a lot of orphaned connections, as it limits the number of connections we have open.
+    # ActiveRecord only calls reap if there are no more connections available in the pool, i.e. if all connections are in use (and potentially orphaned).
+    def checkout(checkout_timeout = @checkout_timeout)
+      begin
+        reap_connections
+      rescue => ex
+        ActiveRecord::Base.logger.error("Exception occurred while executing reap_connections: #{ex}")
+      end
+      super
+    end
+
+    # Invoca Patch - Only used in our #checkout patch above. The main difference this method has with #reap is that we don't call #steal! on the orphaned connections first.
+    # This may be risky for race conditions but potentially runs faster than the #reap method?
+    # We should look to replace this with the standard #reap method in the future.
     def reap_connections
       cached_connections.values.each do |connection|
         unless connection.owner.alive?
@@ -246,17 +263,14 @@ module FiberedMysql2
       end
     end
 
-    private
-
-    #--
-    # This hook-in method allows for easier monkey-patching fixes needed by
-    # JRuby users that use Fibers.
-    def connection_cache_key(fiber)
-      fiber
+    # Invoca Patch - Helper method.
+    def cached_connections
+      @thread_cached_conns
     end
 
-    def current_thread
-      Fiber.current
+    # Invoca Patch - Helper method
+    def current_connection_id
+      connection_cache_key(current_thread)
     end
   end
 end

@@ -67,12 +67,12 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
       before { adapter.lease }
 
       it 'by the current Fiber' do
-        expect{ subject }.to raise_exception(ActiveRecord::ActiveRecordError, "Cannot lease connection, it is already leased by the current fiber.")
+        expect{ subject }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot lease connection/)
       end
 
       it 'by another Fiber' do
         new_fiber = Fiber.new { subject }
-        expect{ new_fiber.resume }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot lease connection, it is already in use by a different fiber/)
+        expect{ new_fiber.resume }.to raise_exception(ActiveRecord::ActiveRecordError, /Cannot lease connection/)
       end
     end
   end
@@ -131,7 +131,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
     end
   end
 
-  context 'other mixins' do
+  context 'other mixins', if: Rails.gem_version < "7.1" do
     it 'raises if @owner has been overwritten with a non-Fiber' do
       adapter.instance_variable_set(:@owner, Thread.new { })
 

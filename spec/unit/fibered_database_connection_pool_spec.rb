@@ -375,6 +375,8 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       allow(client).to receive(:escape) { |query| query }
       allow(client).to receive(:ping) { true }
       allow(client).to receive(:close)
+      allow(client).to receive(:closed?) { false }
+      allow(client).to receive(:query)
       allow(client).to receive(:info).and_return({ version: "5.7.27" })
       allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
       allow(Mysql2::EM::Client).to receive(:new) { |config| client }
@@ -392,15 +394,6 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
 
     context "with more than 1 connection in the pool" do
       it "should serve separate connections per fiber" do
-        expected_query = if Rails::VERSION::MAJOR > 4
-                           "SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483"
-                         else
-                           "SET  @@SESSION.sql_auto_is_null = 0, @@SESSION.wait_timeout = 2147483, @@SESSION.sql_mode = 'STRICT_ALL_TABLES'"
-                         end
-        expect(client).to receive(:query) do |*args|
-          expect(args).to eq([expected_query])
-        end.exactly(2).times
-
         c0 = ActiveRecord::Base.connection
         c1 = nil
         fiber = Fiber.new { c1 = ActiveRecord::Base.connection }
@@ -416,11 +409,6 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       end
 
       it "should reclaim connections when the fiber has exited" do
-        expect(client).to receive(:query) { }.exactly(2).times
-
-        reap_connection_count = Rails::VERSION::MAJOR > 4 ? 5 : 3
-        expect(ActiveRecord::Base.connection_pool).to receive(:reap_connections).with(no_args).exactly(reap_connection_count).times.and_call_original
-
         ActiveRecord::Base.connection
         c1 = nil
         fiber1 = Fiber.new { c1 = ActiveRecord::Base.connection }

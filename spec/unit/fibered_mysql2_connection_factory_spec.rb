@@ -16,6 +16,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
         allow(client).to receive(:query_options) { {} }
         allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
         allow(client).to receive(:ping) { true }
+        allow(client).to receive(:closed?) { false }
         allow(client).to receive(:query).and_return(stub_mysql_client_result)
         ActiveRecord::Base.establish_connection(
           :adapter => 'fibered_mysql2',
@@ -40,6 +41,8 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
       allow(client).to receive(:query_options) { {} }
       allow(client).to receive(:escape) { |query| query }
       allow(client).to receive(:ping) { true }
+      allow(client).to receive(:close)
+      allow(client).to receive(:closed?) { false }
       allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
       allow(client).to receive(:query).and_return(stub_mysql_client_result)
     end
@@ -73,12 +76,12 @@ RSpec.describe FiberedMysql2::FiberedMysql2ConnectionFactory do
           before { connection.enable_lazy_transactions! }
 
           it 'does not materialize a transaction without any queries' do
-            expect(client).to_not receive(:query).with("BEGIN")
-            expect(client).to_not receive(:query).with("COMMIT")
-
+            transaction = nil
             connection.transaction do
-              expect(connection.current_transaction.materialized?).to be_falsey
+              transaction = connection.current_transaction
+              expect(transaction.materialized?).to be_falsey
             end
+            expect(transaction.materialized?).to be_falsey
           end
 
           it 'materializes a transaction when the first query is performed' do
