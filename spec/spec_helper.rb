@@ -1,7 +1,5 @@
 # frozen_string_literal: true
-require 'coveralls'
-
-Coveralls.wear!
+require_relative "simplecov_helper"
 
 require 'bundler/setup'
 require 'logger'
