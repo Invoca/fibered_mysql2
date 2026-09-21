@@ -8,6 +8,7 @@ gemspec
 gem 'appraisal'
 gem 'appraisal-matrix'
 gem 'base64'
+gem 'bigdecimal'
 gem 'simplecov', '~> 0.22'
 gem 'simplecov-lcov', '~> 0.8'
 gem 'mutex_m'
