@@ -2,11 +2,14 @@
 
 require_relative '../../lib/active_record/connection_adapters/fibered_mysql2_adapter'
 
-# Needs a real MySQL server, so it only runs when FIBERED_MYSQL2_TEST_MYSQL_HOST is set, e.g.
+# Needs a real MySQL server, so it is pending (with the reason below) unless FIBERED_MYSQL2_TEST_MYSQL_HOST is set, e.g.
 #   docker run -d --rm -p 127.0.0.1:23306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0
 #   FIBERED_MYSQL2_TEST_MYSQL_HOST=127.0.0.1 FIBERED_MYSQL2_TEST_MYSQL_PORT=23306 bundle exec rspec
-RSpec.describe FiberedMysql2::FiberedMysql2Adapter, "connecting to a real MySQL server from the reactor",
-               if: ENV["FIBERED_MYSQL2_TEST_MYSQL_HOST"] do
+RSpec.describe FiberedMysql2::FiberedMysql2Adapter, "connecting to a real MySQL server from the reactor" do
+  before do
+    ENV["FIBERED_MYSQL2_TEST_MYSQL_HOST"] or skip("needs a MySQL server: set FIBERED_MYSQL2_TEST_MYSQL_HOST (and _PORT)")
+  end
+
   let(:config) do
     {
       host:            ENV["FIBERED_MYSQL2_TEST_MYSQL_HOST"],
@@ -43,7 +46,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter, "connecting to a real MySQL 
   end
 
   it "reconnects and retries a transaction's BEGIN after the server kills the connection (connection_retries: 1)",
-     if: ENV["FIBERED_MYSQL2_TEST_MYSQL_HOST"] && Rails.gem_version >= "7.1" do
+     if: Rails.gem_version >= "7.1" do
     # A separate class, so this does not replace the pool other examples set up on ActiveRecord::Base.
     stub_const("NonblockingConnectSpecRecord", Class.new(ActiveRecord::Base) { self.abstract_class = true })
     NonblockingConnectSpecRecord.establish_connection(config.merge(adapter: "fibered_mysql2", connection_retries: 1))

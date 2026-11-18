@@ -62,12 +62,29 @@ class TimerHelper
   end
 end
 
+# Sends EM.next_tick to an EmHelper during an example. The adapter also calls EM.next_tick from its connect thread, so
+# this is a plain module rather than an rspec-mocks stub: a message stub (and the lazy `let` it read) invoked from that
+# thread intermittently crashed the Ruby VM while freeing a Mutex.
+module NextTickRedirect
+  class << self
+    attr_accessor :target
+  end
+
+  def next_tick(pr = nil, &block)
+    if (target = NextTickRedirect.target)
+      target.queue_next_tick(&(pr || block))
+    else
+      super
+    end
+  end
+end
+EM.singleton_class.prepend(NextTickRedirect)
+
 RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
   let(:em_helper) { EmHelper.new }
 
-  before do
-    allow(EM).to receive(:next_tick) { |&block| em_helper.queue_next_tick(&block) }
-  end
+  before { NextTickRedirect.target = em_helper }
+  after { NextTickRedirect.target = nil }
 
   context FiberedMysql2::FiberedMonitorMixin do
     let(:monitor) { TestMonitor.new }
@@ -379,7 +396,8 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
       allow(client).to receive(:query)
       allow(client).to receive(:info).and_return({ version: "5.7.27" })
       allow(client).to receive(:server_info).and_return({ version: "5.7.27" })
-      allow(Mysql2::EM::Client).to receive(:new) { |config| client }
+      pooled_client = client
+      FakeConnect.handler = ->(*) { pooled_client }
 
       establish_connection
     end

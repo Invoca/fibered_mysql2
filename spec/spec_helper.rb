@@ -7,6 +7,8 @@ require 'bundler/setup'
 require 'rails'
 require 'active_record'
 require 'fibered_mysql2'
+require_relative 'support/fake_connect'
+require_relative 'support/thread_leak_guard'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

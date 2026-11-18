@@ -133,7 +133,7 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter do
 
   context 'other mixins', if: Rails.gem_version < "7.1" do
     it 'raises if @owner has been overwritten with a non-Fiber' do
-      adapter.instance_variable_set(:@owner, Thread.new { })
+      adapter.instance_variable_set(:@owner, Thread.new { }.tap(&:join))
 
       expect { adapter.expire }.to raise_exception(RuntimeError, /@owner must be a Fiber!/i)
     end

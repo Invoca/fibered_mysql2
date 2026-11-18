@@ -21,9 +21,10 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool, "while a new connec
 
   before do
     clients = Array.new(3) { stub_client }
+    delays = connect_delays
     # Runs on the connect thread: each connect sleeps for its queued delay before returning a client.
-    allow(Mysql2::EM::Client).to receive(:new) do
-      sleep connect_delays.pop
+    FakeConnect.handler = lambda do |*|
+      sleep delays.pop
       clients.pop
     end
 
