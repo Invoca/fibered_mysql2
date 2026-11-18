@@ -116,8 +116,10 @@ module FiberedMysql2
 
       def connect_client_off_reactor(config)
         fiber = Fiber.current
+        reactor_run = current_reactor_run
         waiting = false
         done = false
+        abandoned = false
 
         connect_thread = Thread.new do
           Thread.current.report_on_exception = false
@@ -126,20 +128,61 @@ module FiberedMysql2
           # EM.next_tick is safe to call from another thread; the block runs on the reactor thread.
           EM.next_tick do
             done = true
-            fiber.resume if waiting
+            if waiting && fiber.alive? && reactor_run.equal?(@current_reactor_run)
+              fiber.resume
+            elsif waiting || abandoned
+              # Nobody will read the result: the reactor this connect started on has stopped (this tick is being
+              # flushed by a later EM.run), or the waiting fiber was unwound. Close the client instead of leaking it.
+              close_orphaned_client(connect_thread)
+            end
           end
         end
 
+        finished = false
         begin
-          waiting = true
-          Fiber.yield until done
-        rescue FiberError
-          # The root fiber cannot yield: wait for the connect, blocking the reactor as before.
-        ensure
-          waiting = false
-        end
+          begin
+            waiting = true
+            Fiber.yield until done
+          rescue FiberError
+            # The root fiber cannot yield: wait for the connect, blocking the reactor as before.
+          ensure
+            waiting = false
+          end
 
-        connect_thread.value
+          client = connect_thread_result(connect_thread)
+          finished = true
+          client
+        ensure
+          # Unwound while waiting (for example by an exception raised into this fiber): let the tick close the client.
+          abandoned = true unless finished || done
+        end
+      end
+
+      # A token for the current EM.run, cleared when that reactor stops, so a connect that outlives its reactor
+      # never resumes its fiber inside a later one.
+      def current_reactor_run
+        @current_reactor_run ||= begin
+          reactor_run = Object.new
+          EM.add_shutdown_hook { @current_reactor_run = nil if @current_reactor_run.equal?(reactor_run) }
+          reactor_run
+        end
+      end
+
+      def connect_thread_result(connect_thread)
+        connect_thread.value or
+          raise ActiveRecord::ConnectionNotEstablished, "fibered_mysql2 connect thread ended without returning a client"
+      rescue Mysql2::Error, ActiveRecord::ConnectionNotEstablished
+        raise
+      rescue StandardError => ex
+        # Thread#value re-raises with the connect thread's backtrace only; add the caller's frames.
+        ex.set_backtrace(Array(ex.backtrace) + caller)
+        raise ex
+      end
+
+      def close_orphaned_client(connect_thread)
+        connect_thread.value&.close
+      rescue StandardError
+        nil
       end
     end
   end
