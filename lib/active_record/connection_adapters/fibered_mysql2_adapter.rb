@@ -92,13 +92,54 @@ module FiberedMysql2
     class << self
       # Copied from Mysql2Adapter, except with the EM Mysql2 client
       def new_client(config)
-        Mysql2::EM::Client.new(config)
+        connect_client(config)
       rescue Mysql2::Error => error
         if error.error_number == 1049
           raise ActiveRecord::NoDatabaseError.new, error.message
         else
           raise ActiveRecord::ConnectionNotEstablished, error.message
         end
+      end
+
+      private
+
+      # Mysql2::Client#initialize connects synchronously (mysql_real_connect), so on the reactor thread it would
+      # stop EventMachine for up to connect_timeout. There, connect on a separate thread (the native connect releases
+      # the GVL) and yield the calling fiber until it is done. Elsewhere, connect inline as before.
+      def connect_client(config)
+        if EM.reactor_running? && EM.reactor_thread?
+          connect_client_off_reactor(config)
+        else
+          Mysql2::EM::Client.new(config)
+        end
+      end
+
+      def connect_client_off_reactor(config)
+        fiber = Fiber.current
+        waiting = false
+        done = false
+
+        connect_thread = Thread.new do
+          Thread.current.report_on_exception = false
+          Mysql2::EM::Client.new(config)
+        ensure
+          # EM.next_tick is safe to call from another thread; the block runs on the reactor thread.
+          EM.next_tick do
+            done = true
+            fiber.resume if waiting
+          end
+        end
+
+        begin
+          waiting = true
+          Fiber.yield until done
+        rescue FiberError
+          # The root fiber cannot yield: wait for the connect, blocking the reactor as before.
+        ensure
+          waiting = false
+        end
+
+        connect_thread.value
       end
     end
   end
