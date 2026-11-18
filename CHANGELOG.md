@@ -4,6 +4,13 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - Unreleased
+### Changed
+- On the EventMachine reactor thread, `FiberedMysql2Adapter.new_client` now connects on a separate thread and yields the
+  calling fiber until the connect finishes, so a database that does not answer no longer stops the reactor for
+  `connect_timeout` on every connect attempt (including Rails 7.1 `connection_retries`). Outside the reactor, and on the
+  reactor's root fiber (which cannot yield), it connects inline as before. Errors map as before.
+
 ## [0.4.0] - 2025-08-21
 ### Added
 - Support for Rails 7.1.
