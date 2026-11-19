@@ -403,6 +403,9 @@ RSpec.describe FiberedMysql2::FiberedDatabaseConnectionPool do
     end
 
     after :each do
+      # Return this fiber's connection first. Otherwise removing the pool waits (as a fiber, on the reactor) for that
+      # connection to be checked in, the reactor stops, and the removing fiber is left suspended while holding a lock.
+      ActiveRecord::Base.connection_pool.release_connection
       EM.run do
         f = Fiber.new { ActiveRecord::Base.remove_connection }
         f.resume
