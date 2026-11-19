@@ -4,6 +4,35 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-11-18
+### Changed
+- On the EventMachine reactor thread, `FiberedMysql2Adapter.new_client` now connects on a separate thread and yields the
+  calling fiber until the connect finishes, so a database that does not answer no longer stops the reactor for
+  `connect_timeout` on every connect attempt, including each Rails 7.1 `connection_retries` attempt. Off the reactor
+  thread it connects inline as before. On the reactor's root fiber, which cannot yield, the connect runs on the separate
+  thread but the root fiber blocks until it finishes, so the reactor stops for the connect as before. Errors map as
+  before: 1049 raises `ActiveRecord::NoDatabaseError` and any other `Mysql2::Error` raises
+  `ActiveRecord::ConnectionNotEstablished`.
+  - Each connect in progress uses one thread, which ends when the connect does (bounded by `connect_timeout`; mysql2
+    uses 120 s when it is not set).
+  - If the reactor stops during a connect, the waiting fiber is not resumed in a later reactor, and the client is closed.
+    If the waiting fiber is unwound before the connect finishes, the client is closed too.
+  - Other errors raised while connecting keep the caller's frames in their backtrace. A connect thread that ends
+    without a client raises `ActiveRecord::ConnectionNotEstablished`.
+- `FiberedDatabaseConnectionPool#connection` no longer holds the pool monitor around `checkout` (as in Rails, each cache
+  key belongs to one fiber). Other fibers can check connections in and out while a new connection is connecting, and
+  `checkout_timeout` applies to them.
+
+### Notes
+- Any fiber other than the root fiber on the reactor thread now yields while a connection connects, including fibers not
+  driven by EventMachine (for example an `Enumerator`'s). The connection's first queries already yielded the same way.
+- `Timeout.timeout` around a connect is not supported under the reactor: the timeout fires while the fiber is waiting
+  and the exception escapes the reactor instead of reaching the caller (as it already did for queries). Use an
+  EventMachine timer instead.
+- Rails 7.1's `reconnect!` waits between attempts with `Kernel#sleep` (`backoff`). That blocks the reactor unless the app
+  routes `sleep` on the reactor to a fiber-aware sleep (for example exceptional_synchrony's
+  `Kernel.em_synchrony_sleep_hook` set to `EM::Synchrony.sleep`).
+
 ## [0.4.0] - 2025-08-21
 ### Added
 - Support for Rails 7.1.

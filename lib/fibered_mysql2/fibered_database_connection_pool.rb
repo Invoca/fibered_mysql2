@@ -224,20 +224,11 @@ module FiberedMysql2
       @reaper = nil # no need to keep a reference to this since it does nothing in this sub-class
     end
 
+    # As in Rails: each cache key belongs to a single fiber, so no lock is needed here. Holding the pool monitor around
+    # checkout would also make every other fiber wait for it while a new connection connects (the connect yields the
+    # fiber), including fibers that only want to check a connection in.
     def connection
-      # this is correctly done double-checked locking
-      # (ThreadSafe::Cache's lookups have volatile semantics)
-      if (result = cached_connections[current_connection_id])
-        result
-      else
-        synchronize do
-          if (result = cached_connections[current_connection_id])
-            result
-          else
-            cached_connections[current_connection_id] = checkout
-          end
-        end
-      end
+      cached_connections[current_connection_id] ||= checkout
     end
 
     # Invoca Patch - Reap connections so we re-use any orphaned connections instead of creating a new connection.
