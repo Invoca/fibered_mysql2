@@ -105,7 +105,9 @@ module FiberedMysql2
 
       # Mysql2::Client#initialize connects synchronously (mysql_real_connect), so on the reactor thread it would
       # stop EventMachine for up to connect_timeout. There, connect on a separate thread (the native connect releases
-      # the GVL) and yield the calling fiber until it is done. Elsewhere, connect inline as before.
+      # the GVL) and yield the calling fiber until it is done. Off the reactor thread, connect inline as before.
+      # On the reactor's root fiber, which cannot yield, the connect still runs on the separate thread, but the root
+      # fiber blocks until it is done, so the reactor stops for the connect as it did before.
       def connect_client(config)
         if EM.reactor_running? && EM.reactor_thread?
           connect_client_off_reactor(config)
@@ -144,7 +146,8 @@ module FiberedMysql2
             waiting = true
             Fiber.yield until done
           rescue FiberError
-            # The root fiber cannot yield: wait for the connect, blocking the reactor as before.
+            # The root fiber cannot yield: block on the connect thread below, which stops the reactor for the connect
+            # as an inline connect did.
           ensure
             waiting = false
           end
@@ -159,13 +162,14 @@ module FiberedMysql2
       end
 
       # A token for the current EM.run, cleared when that reactor stops, so a connect that outlives its reactor
-      # never resumes its fiber inside a later one.
+      # never resumes its fiber inside a later one. The shutdown hook that clears it is registered only when the token
+      # is created, so once per reactor run; later connects in the same run reuse the token and register nothing.
       def current_reactor_run
-        @current_reactor_run ||= begin
-          reactor_run = Object.new
-          EM.add_shutdown_hook { @current_reactor_run = nil if @current_reactor_run.equal?(reactor_run) }
-          reactor_run
-        end
+        return @current_reactor_run if @current_reactor_run
+
+        reactor_run = Object.new
+        EM.add_shutdown_hook { @current_reactor_run = nil if @current_reactor_run.equal?(reactor_run) }
+        @current_reactor_run = reactor_run
       end
 
       def connect_thread_result(connect_thread)
