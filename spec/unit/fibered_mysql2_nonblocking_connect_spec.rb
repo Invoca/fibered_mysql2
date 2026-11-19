@@ -2,6 +2,20 @@
 
 require_relative '../../lib/active_record/connection_adapters/fibered_mysql2_adapter'
 
+# Counts EM.add_shutdown_hook calls while an example sets `count`. A plain module rather than an rspec-mocks spy, so no
+# test double is involved in the connect.
+module ShutdownHookCounter
+  class << self
+    attr_accessor :count
+  end
+
+  def add_shutdown_hook(&block)
+    ShutdownHookCounter.count += 1 if ShutdownHookCounter.count
+    super
+  end
+end
+EM.singleton_class.prepend(ShutdownHookCounter)
+
 RSpec.describe FiberedMysql2::FiberedMysql2Adapter, "connecting without blocking the reactor" do
   let(:query_result) { Struct.new(:fields, :to_a).new([], []) }
   let(:client) { stub_client }
@@ -166,6 +180,28 @@ RSpec.describe FiberedMysql2::FiberedMysql2Adapter, "connecting without blocking
         run_another_reactor
 
         expect(resumed).to eq(false)
+      end
+    end
+
+    context "with three connects in each of two reactor runs" do
+      after { ShutdownHookCounter.count = nil }
+
+      it "registers the reactor-run shutdown hook once per run" do
+        stub_slow_connect(seconds: 0.05)
+        ShutdownHookCounter.count = 0
+        hooks_per_run = []
+        results = []
+
+        2.times do
+          before_run = ShutdownHookCounter.count
+          result, = in_reactor_fiber { Array.new(3) { described_class.new_client({}) } }
+          results.concat(Array(result))
+          hooks_per_run << ShutdownHookCounter.count - before_run
+        end
+
+        expect(hooks_per_run).to eq([1, 1])
+        expect(results).to eq([client] * 6)
+        expect(described_class.instance_variable_get(:@current_reactor_run)).to be_nil
       end
     end
 
