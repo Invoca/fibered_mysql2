@@ -4,13 +4,15 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - Unreleased
+## [0.5.0] - 2026-11-18
 ### Changed
 - On the EventMachine reactor thread, `FiberedMysql2Adapter.new_client` now connects on a separate thread and yields the
   calling fiber until the connect finishes, so a database that does not answer no longer stops the reactor for
-  `connect_timeout` on every connect attempt, including each Rails 7.1 `connection_retries` attempt. Outside the reactor,
-  and on the reactor's root fiber (which cannot yield), it connects inline as before. Errors map as before: 1049 raises
-  `ActiveRecord::NoDatabaseError` and any other `Mysql2::Error` raises `ActiveRecord::ConnectionNotEstablished`.
+  `connect_timeout` on every connect attempt, including each Rails 7.1 `connection_retries` attempt. Off the reactor
+  thread it connects inline as before. On the reactor's root fiber, which cannot yield, the connect runs on the separate
+  thread but the root fiber blocks until it finishes, so the reactor stops for the connect as before. Errors map as
+  before: 1049 raises `ActiveRecord::NoDatabaseError` and any other `Mysql2::Error` raises
+  `ActiveRecord::ConnectionNotEstablished`.
   - Each connect in progress uses one thread, which ends when the connect does (bounded by `connect_timeout`; mysql2
     uses 120 s when it is not set).
   - If the reactor stops during a connect, the waiting fiber is not resumed in a later reactor, and the client is closed.
